@@ -94,7 +94,7 @@ sequenceDiagram
     end
 
     opt User adds or edits an item
-        UI->>UI: Open shared item modal; build typed attributes or edit DynamoDB JSON
+        UI->>UI: Open shared item modal and build typed attributes or edit DynamoDB JSON
         UI->>API: updateItem() with complete typed key and item
         API->>HTTP: PUT /items
         HTTP->>App: PutItem()
