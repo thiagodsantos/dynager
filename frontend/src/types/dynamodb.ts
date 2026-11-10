@@ -1,3 +1,5 @@
+export type Item = Record<string, AttributeValue>
+
 export type AttributeValue =
   | { S: string }
   | { N: string }
@@ -10,7 +12,6 @@ export type AttributeValue =
   | { BS: string[] }
   | { B: string }
 
-export type Item = Record<string, AttributeValue>
 export type KeyType = 'HASH' | 'RANGE'
 
 export interface TableDescription {

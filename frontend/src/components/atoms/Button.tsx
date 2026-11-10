@@ -9,8 +9,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
 }
 
-export function Button({ variant = 'secondary', size = 'md', busy = false, className = '', children, disabled, ...props }: ButtonProps) {
-  return <button className={`button button-${variant} button-${size} ${className}`} disabled={disabled || busy} {...props}>
+export function Button({ type = 'button', variant = 'secondary', size = 'md', busy = false, className = '', children, disabled, ...props }: ButtonProps) {
+  // The wrapper defaults the type but forwards submit/reset when explicitly requested.
+  // eslint-disable-next-line react/button-has-type
+  return <button type={type} className={`button button-${variant} button-${size} ${className}`} disabled={disabled || busy} {...props}>
     {busy && <LoaderCircle aria-hidden="true" className="spinner" size={15} />}{children}
   </button>
 }

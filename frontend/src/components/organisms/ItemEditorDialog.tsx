@@ -33,8 +33,8 @@ export function ItemEditorDialog({ item, metadata, busy, onClose, onSave }: {
   }
 
   return <ItemDialogModal icon={<Code2 size={18} />} title="Edit item" description="Preserve DynamoDB types and the full primary key." keyStatus="Primary key locked" keyDescription={`${metadata.partitionKey.name}${metadata.sortKey ? ` + ${metadata.sortKey.name}` : ''}`} busy={busy} onClose={onClose} closeLabel="Close editor">
-      <form onSubmit={(event) => void submit(event)}>
-        <label className="field" htmlFor="item-json"><span className="field-label">DynamoDB JSON</span><JsonCodeEditor id="item-json" value={json} onChange={setJson} describedBy="item-json-help" /></label>
+      <form onSubmit={(event) => { void submit(event) }}>
+        <div className="field"><span className="field-label">DynamoDB JSON</span><JsonCodeEditor id="item-json" value={json} onChange={setJson} describedBy="item-json-help" /></div>
         <span id="item-json-help" className="field-hint editor-hint">Use DynamoDB JSON attribute shapes: S, N, BOOL, NULL, M, L, SS, NS, BS, or B.</span>
         {error && <ErrorState message={error} />}
         <div className="editor-actions"><Button type="button" onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" variant="primary" busy={busy}>Save changes</Button></div>

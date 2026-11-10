@@ -41,22 +41,24 @@ export function ConnectionsPage() {
   }
 
   return <>
-    <PageHeader eyebrow="Your workspace" title="Connections" description="Manage your DynamoDB access points and jump into a table." actions={<><Button onClick={() => void load()} aria-label="Refresh connections"><RefreshCw size={15} />Refresh</Button><Button variant="primary" onClick={() => navigate('/connections/new')}><Plus size={16} />Add connection</Button></>} />
+    <PageHeader eyebrow="Your workspace" title="Connections" description="Manage your DynamoDB access points and jump into a table." actions={<><Button onClick={() => { void load() }} aria-label="Refresh connections"><RefreshCw size={15} />Refresh</Button><Button variant="primary" onClick={() => navigate('/connections/new')}><Plus size={16} />Add connection</Button></>} />
     <section className="metric-strip" aria-label="Workspace summary">
       <div className="metric-card"><span className="metric-icon icon-violet"><Database size={18} /></span><span className="metric-copy"><small>Connections</small><strong>{loading ? '—' : connections.length}</strong></span><span className="metric-note">configured</span></div>
       <div className="metric-card"><span className="metric-icon icon-green"><Cloud size={18} /></span><span className="metric-copy"><small>Credential source</small><strong>External</strong></span><span className="metric-note">never stored here</span></div>
       <div className="metric-card metric-wide"><span className="metric-icon icon-blue"><span className="pulse-dot" /></span><span className="metric-copy"><small>Connection mode</small><strong>Backend managed</strong></span><span className="metric-note">AWS SDK credential chain</span></div>
     </section>
     <div className="section-heading"><div><h2>Configured connections</h2><p>Connections contain only region and optional profile/endpoint settings.</p></div><StatusBadge>{connections.length} {connections.length === 1 ? 'connection' : 'connections'}</StatusBadge></div>
-    {error && <ErrorState message={error} onRetry={() => void load()} />}
-    {loading ? <LoadingState label="Loading connections…" /> : connections.length === 0 ? <EmptyState title="No connections yet" description="Add a region and let the backend use your AWS credential chain or named profile." action={<Button variant="primary" onClick={() => navigate('/connections/new')}><Plus size={16} />Create a connection</Button>} /> : <div className="connection-grid">
+    {error && <ErrorState message={error} onRetry={() => { void load() }} />}
+    {loading && <LoadingState label="Loading connections…" />}
+        {!loading && connections.length === 0 && <EmptyState title="No connections yet" description="Add a region and let the backend use your AWS credential chain or named profile." action={<Button variant="primary" onClick={() => navigate('/connections/new')}><Plus size={16} />Create a connection</Button>} />}
+        {!loading && connections.length > 0 && <div className="connection-grid">
       {connections.map((connection) => <article className="connection-card" key={connection.id}>
-        <div className="connection-card-top"><span className="connection-icon"><Database size={19} /></span><StatusBadge tone="success">Configured</StatusBadge><button className="icon-button danger-icon" aria-label={`Remove ${connection.name}`} disabled={removing === connection.id} onClick={() => setConnectionToRemove(connection)}><Trash2 size={16} /></button></div>
+        <div className="connection-card-top"><span className="connection-icon"><Database size={19} /></span><StatusBadge tone="success">Configured</StatusBadge><button type="button" className="icon-button danger-icon" aria-label={`Remove ${connection.name}`} disabled={removing === connection.id} onClick={() => setConnectionToRemove(connection)}><Trash2 size={16} /></button></div>
         <h3>{connection.name}</h3><p className="connection-region"><span className="region-mark">⌖</span>{connection.region}</p>
         <div className="connection-meta"><span>{connection.profile ? `Profile · ${connection.profile}` : 'AWS default credential chain'}</span>{connection.endpointConfigured && <span className="endpoint-tag">Custom endpoint configured</span>}</div>
         <Link className="connection-link" to={`/connections/${encodeURIComponent(connection.id)}/tables`}>Explore tables<ArrowRight size={16} /></Link>
       </article>)}
     </div>}
-    {connectionToRemove && <ConfirmationDialog title="Remove connection?" description={`Remove “${connectionToRemove.name}” from this workspace? This only removes the saved connection settings.`} confirmLabel="Remove connection" busy={removing === connectionToRemove.id} onCancel={() => setConnectionToRemove(null)} onConfirm={() => void remove(connectionToRemove)} />}
+    {connectionToRemove && <ConfirmationDialog title="Remove connection?" description={`Remove “${connectionToRemove.name}” from this workspace? This only removes the saved connection settings.`} confirmLabel="Remove connection" busy={removing === connectionToRemove.id} onCancel={() => setConnectionToRemove(null)} onConfirm={() => { void remove(connectionToRemove) }} />}
   </>
 }

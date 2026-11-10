@@ -6,9 +6,9 @@ function highlightJson(json: string) {
   const tokens: ReactNode[] = []
   let lastIndex = 0
 
-  for (const match of json.matchAll(jsonTokenPattern)) {
+  Array.from(json.matchAll(jsonTokenPattern)).forEach((match) => {
     const token = match[0]
-    const {index} = match
+    const { index } = match
     if (index > lastIndex) tokens.push(json.slice(lastIndex, index))
 
     let className = 'json-token-punctuation'
@@ -21,7 +21,7 @@ function highlightJson(json: string) {
     }
     tokens.push(<span className={className} key={index}>{token}</span>)
     lastIndex = index + token.length
-  }
+  })
 
   if (lastIndex < json.length) tokens.push(json.slice(lastIndex))
   return tokens
@@ -30,7 +30,7 @@ function highlightJson(json: string) {
 export function JsonCodeEditor({ id, value, onChange, describedBy }: {
   id: string
   value: string
-  onChange: (value: string) => void
+  onChange: (nextValue: string) => void
   describedBy?: string
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)

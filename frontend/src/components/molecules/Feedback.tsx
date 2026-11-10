@@ -6,7 +6,7 @@ export function LoadingState({ label = 'Loading…' }: { label?: string }) {
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return <div className="feedback feedback-error" role="alert"><AlertCircle size={18} /><span>{message}</span>{onRetry && <button className="text-button" onClick={onRetry}>Try again</button>}</div>
+  return <div className="feedback feedback-error" role="alert"><AlertCircle size={18} /><span>{message}</span>{onRetry && <button type="button" className="text-button" onClick={onRetry}>Try again</button>}</div>
 }
 
 export function EmptyState({ title, description, action }: { title: string; description: string; action?: ReactNode }) {

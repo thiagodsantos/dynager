@@ -69,7 +69,7 @@ export function ConnectionSetupPage() {
   return <>
     <PageHeader eyebrow="Connection settings" title="Connect to DynamoDB" description="Choose a region and let the backend resolve credentials securely." actions={<Link className="button button-secondary button-md" to="/connections"><ArrowLeft size={15} />All connections</Link>} />
     <div className="setup-layout">
-      <form className="panel setup-form" onSubmit={(event) => void save(event)}>
+      <form className="panel setup-form" onSubmit={(event) => { void save(event) }}>
         <div className="panel-title-row"><div><span className="step-indicator">01</span><div><h2>Connection details</h2><p>Tell dynager where your DynamoDB service lives.</p></div></div><span className="form-required">* Required</span></div>
         <div className="form-grid">
           <Field label="Connection name" placeholder="e.g. Development" autoComplete="off" required value={form.name} onChange={(event) => update('name', event.target.value)} />
@@ -80,7 +80,7 @@ export function ConnectionSetupPage() {
         <div className="security-callout"><ShieldCheck size={19} /><div><strong>Your AWS credentials are never entered here.</strong><p>dynager uses the backend’s AWS SDK credential chain. Access keys and session tokens are never sent to or stored by this browser.</p></div></div>
         {error && <ErrorState message={error} />}
 
-        <div className="form-actions"><Button type="button" onClick={() => void testConnection()} busy={testing}><Wifi size={16} />Test connection</Button><Button type="submit" variant="primary" busy={saving}><Check size={16} />Save connection</Button></div>
+        <div className="form-actions"><Button type="button" onClick={() => { void testConnection() }} busy={testing}><Wifi size={16} />Test connection</Button><Button type="submit" variant="primary" busy={saving}><Check size={16} />Save connection</Button></div>
       </form>
       <aside className="setup-aside">
         <div className="info-card info-card-purple"><span className="info-icon"><Cloud size={19} /></span><p className="eyebrow">SECURE BY DEFAULT</p><h3>No secrets in the browser</h3><p>Credentials are resolved by your backend using its configured AWS credential provider. Connection settings contain only a name, region, optional profile, and endpoint.</p><div className="info-check"><ShieldCheck size={15} />No access key fields</div><div className="info-check"><ShieldCheck size={15} />No browser credential storage</div></div>

@@ -74,7 +74,7 @@ export function TableBrowserPage() {
     setTokens([undefined])
     setPageIndex(0)
     setItemsError('')
-    if (!tableName) { setMetadata(null); return }
+    if (!tableName) { setMetadata(null); return undefined }
     let current = true
     setMetaLoading(true)
     setMetaError('')
@@ -98,7 +98,7 @@ export function TableBrowserPage() {
     } finally { setPageLoading(false) }
   }, [activeFilter, connectionId, metadata, pageIndex, tableName, tokens])
 
-  useEffect(() => { void loadItems() }, [loadItems])
+  useEffect(() => { loadItems() }, [loadItems])
 
   function applyFilter() {
     setFilterError('')
@@ -180,10 +180,15 @@ export function TableBrowserPage() {
   const columns = useMemo(() => [...new Set(page?.items.flatMap((item) => Object.keys(item)) ?? [])], [page])
   const connectionLabel = connection?.name ?? 'Connection'
   const pathToTables = `/connections/${encodeURIComponent(connectionId)}/tables`
+  const emptyItemsTitle = activeFilter ? 'No items match this filter' : 'This table is empty'
+  const emptyItemsDescription = activeFilter
+    ? 'Try another typed value or clear the filter to see all scanned items.'
+    : 'There are no records in this table yet.'
+  const emptyItemsAction = activeFilter ? <Button onClick={clearFilter}>Clear filter</Button> : undefined
 
   return <>
     <div className="back-link-row"><Link className="back-link" to="/connections"><ArrowLeft size={15} />Connections</Link><span>/</span><span>{connectionLabel}</span></div>
-    <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<><Button onClick={() => { if (tableName) void loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>{tableName && metadata && <Button variant="primary" onClick={() => setAddItemOpen(true)}><Plus size={15} />Add item</Button>}</>} />
+    <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<><Button onClick={() => { if (tableName) loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>{tableName && metadata && <Button variant="primary" onClick={() => setAddItemOpen(true)}><Plus size={15} />Add item</Button>}</>} />
     {tablesError && <ErrorState message={tablesError} onRetry={() => navigate(pathToTables)} />}
     {tablesLoading ? <LoadingState label="Loading tables…" /> : <div className="browser-layout">
       <aside className="table-rail panel">
@@ -206,14 +211,16 @@ export function TableBrowserPage() {
               <div className="filter-heading"><span className="filter-icon"><Filter size={16} /></span><div><h2>Filter items</h2><p>Equality filters scan the table. Broad scans may consume read capacity.</p></div><span className="scan-note">SCAN FILTER</span></div>
               <div className="filter-controls"><Field label="Attribute" aria-label="Filter attribute" placeholder="e.g. status" value={filterName} onChange={(event) => setFilterName(event.target.value)} /><TextAreaField label="Typed value (DynamoDB JSON)" aria-label="Typed filter value" rows={1} placeholder='{"S":"active"}' value={filterValue} onChange={(event) => setFilterValue(event.target.value)} /><div className="filter-buttons"><Button variant="primary" onClick={applyFilter}><Search size={15} />Apply</Button>{activeFilter && <Button onClick={clearFilter}><X size={15} />Clear</Button>}</div></div>
               {filterError && <ErrorState message={filterError} />}
-              {activeFilter && <div className="active-filter"><span>Active: <strong>{activeFilter.attribute}</strong> equals <code>{JSON.stringify(activeFilter.value)}</code></span><button aria-label="Clear filter" className="text-button" onClick={clearFilter}>Clear</button></div>}
+              {activeFilter && <div className="active-filter"><span>Active: <strong>{activeFilter.attribute}</strong> equals <code>{JSON.stringify(activeFilter.value)}</code></span><button type="button" aria-label="Clear filter" className="text-button" onClick={clearFilter}>Clear</button></div>}
             </div>
             <section className="panel items-panel">
               <div className="items-toolbar"><div><div className="items-title"><h2>Items</h2>{page && <StatusBadge>{page.count} returned</StatusBadge>}</div><p>{page ? `${page.scannedCount.toLocaleString()} items scanned · page ${pageIndex + 1}` : 'Browse and edit typed DynamoDB records.'}</p></div><span className="page-size"><span className="page-size-dot" />25 per page</span></div>
 
-              {itemsError && <ErrorState message={itemsError} onRetry={() => void loadItems()} />}
-              {pageLoading ? <LoadingState label="Loading items…" /> : page && page.items.length === 0 ? <EmptyState title={activeFilter ? 'No items match this filter' : 'This table is empty'} description={activeFilter ? 'Try another typed value or clear the filter to see all scanned items.' : 'There are no records in this table yet.'} action={activeFilter ? <Button onClick={clearFilter}>Clear filter</Button> : undefined} /> : page && <>
-                <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={`${pageIndex}-${index}`}><td className="row-number">{index + 1 + pageIndex * PAGE_SIZE}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => setDeleteTarget(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
+              {itemsError && <ErrorState message={itemsError} onRetry={() => loadItems()} />}
+              {pageLoading && <LoadingState label="Loading items…" />}
+              {!pageLoading && page?.items.length === 0 && <EmptyState title={emptyItemsTitle} description={emptyItemsDescription} action={emptyItemsAction} />}
+              {!pageLoading && page && page.items.length > 0 && <>
+                <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={JSON.stringify(getItemKey(item, metadata) ?? item)}><td className="row-number">{index + 1 + pageIndex * PAGE_SIZE}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button type="button" className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button type="button" className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => setDeleteTarget(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
                 <div className="pagination"><span>Showing <strong>{page.items.length ? pageIndex * PAGE_SIZE + 1 : 0}–{pageIndex * PAGE_SIZE + page.items.length}</strong> of scanned records</span><div><Button size="sm" onClick={goPrevious} disabled={pageIndex === 0 || pageLoading}><ArrowLeft size={14} />Previous</Button><span className="page-number">{pageIndex + 1}</span><Button size="sm" onClick={goNext} disabled={!page.nextToken || pageLoading}>Next<ArrowRight size={14} /></Button></div></div>
               </>}
             </section>
@@ -221,7 +228,7 @@ export function TableBrowserPage() {
         </>}
       </section>
     </div>}
-    {deleteTarget && tableName && <ConfirmationDialog title="Delete item?" description={`Permanently delete this item from ${tableName}? This action cannot be undone.`} confirmLabel="Delete item" busy={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void removeItem(deleteTarget)} />}
+    {deleteTarget && tableName && <ConfirmationDialog title="Delete item?" description={`Permanently delete this item from ${tableName}? This action cannot be undone.`} confirmLabel="Delete item" busy={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => removeItem(deleteTarget)} />}
     {addItemOpen && metadata && <AddItemDialog metadata={metadata} busy={saving} onClose={() => setAddItemOpen(false)} onCreate={createItem} />}
     {selectedItem && metadata && <ItemEditorDialog item={selectedItem} metadata={metadata} busy={saving} onClose={() => setSelectedItem(null)} onSave={saveItem} />}
   </>

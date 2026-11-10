@@ -8,16 +8,23 @@ import { ItemDialogModal } from '@/components/organisms/ItemDialogModal'
 import { getItemKey, isAttributeValue, isItem, type AttributeValue, type Item, type TableDescription } from '@/types/dynamodb'
 
 type AttributeKind = 'S' | 'N' | 'BOOL' | 'NULL' | 'M' | 'L' | 'SS' | 'NS' | 'BS' | 'B'
-type AttributeDraft = { name: string; kind: AttributeKind; value: string; required?: boolean }
+type AttributeDraft = { id: string; name: string; kind: AttributeKind; value: string; required?: boolean }
+
+let nextAttributeId = 0
+
+function createAttributeId() {
+  nextAttributeId += 1
+  return `attribute-${nextAttributeId}`
+}
 type EntryMode = 'builder' | 'json'
 
 const kinds: AttributeKind[] = ['S', 'N', 'BOOL', 'NULL', 'M', 'L', 'SS', 'NS', 'BS', 'B']
 
 function initialAttributes(metadata: TableDescription): AttributeDraft[] {
   return [
-    { name: metadata.partitionKey.name, kind: metadata.partitionKey.type as AttributeKind, value: '', required: true },
-    ...(metadata.sortKey ? [{ name: metadata.sortKey.name, kind: metadata.sortKey.type as AttributeKind, value: '', required: true }] : []),
-    { name: '', kind: 'S', value: '' },
+    { id: createAttributeId(), name: metadata.partitionKey.name, kind: metadata.partitionKey.type as AttributeKind, value: '', required: true },
+    ...(metadata.sortKey ? [{ id: createAttributeId(), name: metadata.sortKey.name, kind: metadata.sortKey.type as AttributeKind, value: '', required: true }] : []),
+    { id: createAttributeId(), name: '', kind: 'S', value: '' },
   ]
 }
 
@@ -69,18 +76,30 @@ export function AddItemDialog({ metadata, busy, onClose, onCreate }: {
     setAttributes((current) => current.map((attribute, currentIndex) => currentIndex === index ? { ...attribute, ...changes } : attribute))
   }
 
+  function renderValueControl(attribute: AttributeDraft, index: number) {
+    const label = `Attribute value ${index + 1}`
+    const id = `attribute-value-${attribute.id}`
+    if (attribute.kind === 'BOOL') {
+      return <select id={id} className="input" aria-label={label} value={attribute.value} onChange={(event) => updateAttribute(index, { value: event.target.value })}><option value="">Choose…</option><option value="true">true</option><option value="false">false</option></select>
+    }
+    if (attribute.kind === 'NULL') {
+      return <input id={id} className="input" aria-label={label} value="null" disabled />
+    }
+    return <input id={id} className="input" aria-label={label} value={attribute.value} placeholder={valuePlaceholder(attribute.kind)} onChange={(event) => updateAttribute(index, { value: event.target.value })} />
+  }
+
   function buildItem(): Item {
     const item: Item = {}
-    for (const attribute of attributes) {
+    attributes.forEach((attribute) => {
       if (!attribute.name.trim()) {
         if (attribute.value.trim()) throw new Error('Enter an attribute name for each value.')
-        continue
+        return
       }
       const name = attribute.name.trim()
       if (Object.prototype.hasOwnProperty.call(item, name)) throw new Error(`Attribute name "${name}" is duplicated.`)
       if (!attribute.value.trim() && attribute.kind !== 'NULL') throw new Error(`Enter a value for "${name}".`)
       item[name] = parseDraftValue(attribute.kind, attribute.value)
-    }
+    })
     return item
   }
 
@@ -104,17 +123,19 @@ export function AddItemDialog({ metadata, busy, onClose, onCreate }: {
       return
     }
     const expectedKeys = [metadata.partitionKey, metadata.sortKey].filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-    for (const attribute of expectedKeys) {
-      if (!isAttributeValue(item[attribute.name]) || Object.keys(item[attribute.name]).length !== 1 || !Object.prototype.hasOwnProperty.call(item[attribute.name], attribute.type)) {
-        setError(`Primary key "${attribute.name}" must use DynamoDB type ${attribute.type}.`)
-        return
-      }
+    const hasInvalidKey = expectedKeys.some((attribute) => {
       const value = item[attribute.name]
+      if (!isAttributeValue(value) || Object.keys(value).length !== 1 || !Object.prototype.hasOwnProperty.call(value, attribute.type)) {
+        setError(`Primary key "${attribute.name}" must use DynamoDB type ${attribute.type}.`)
+        return true
+      }
       if ((attribute.type === 'S' && !('S' in value && value.S.length > 0)) || (attribute.type === 'N' && !('N' in value && value.N.length > 0)) || (attribute.type === 'B' && !('B' in value && value.B.length > 0))) {
         setError(`Primary key "${attribute.name}" cannot be empty.`)
-        return
+        return true
       }
-    }
+      return false
+    })
+    if (hasInvalidKey) return
     const createError = await onCreate(item)
     if (createError) toast.error(createError)
   }
@@ -124,19 +145,19 @@ export function AddItemDialog({ metadata, busy, onClose, onCreate }: {
         <button type="button" role="tab" aria-selected={mode === 'builder'} className={mode === 'builder' ? 'item-entry-tab active' : 'item-entry-tab'} onClick={() => { setMode('builder'); setError('') }}>Select type and value</button>
         <button type="button" role="tab" aria-selected={mode === 'json'} className={mode === 'json' ? 'item-entry-tab active' : 'item-entry-tab'} onClick={() => { setMode('json'); setError('') }}><Code2 size={14} />Raw JSON</button>
       </div>
-      <form onSubmit={(event) => void submit(event)}>
+      <form onSubmit={submit}>
         {mode === 'builder' ? <div className="attribute-builder">
-          {attributes.map((attribute, index) => <div className="attribute-builder-row" key={index}>
-            <label className="field attribute-name-field"><span className="field-label">Attribute name{attribute.required ? ' · key' : ''}</span><input className="input" aria-label={`Attribute name ${index + 1}`} value={attribute.name} readOnly={attribute.required} placeholder="e.g. status" onChange={(event) => updateAttribute(index, { name: event.target.value })} /></label>
-            <label className="field attribute-kind-field"><span className="field-label">Type</span><select className="input" aria-label={`Attribute type ${index + 1}`} value={attribute.kind} disabled={attribute.required} onChange={(event) => updateAttribute(index, { kind: event.target.value as AttributeKind, value: '' })}>{kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}</select></label>
-            <label className="field attribute-value-field"><span className="field-label">Value</span>{attribute.kind === 'BOOL' ? <select className="input" aria-label={`Attribute value ${index + 1}`} value={attribute.value} onChange={(event) => updateAttribute(index, { value: event.target.value })}><option value="">Choose…</option><option value="true">true</option><option value="false">false</option></select> : attribute.kind === 'NULL' ? <input className="input" aria-label={`Attribute value ${index + 1}`} value="null" disabled /> : <input className="input" aria-label={`Attribute value ${index + 1}`} value={attribute.value} placeholder={valuePlaceholder(attribute.kind)} onChange={(event) => updateAttribute(index, { value: event.target.value })} />}</label>
+          {attributes.map((attribute, index) => <div className="attribute-builder-row" key={attribute.id}>
+            <label className="field attribute-name-field" htmlFor={`attribute-name-${attribute.id}`}><span className="field-label">Attribute name{attribute.required ? ' · key' : ''}</span><input id={`attribute-name-${attribute.id}`} className="input" aria-label={`Attribute name ${index + 1}`} value={attribute.name} readOnly={attribute.required} placeholder="e.g. status" onChange={(event) => updateAttribute(index, { name: event.target.value })} /></label>
+            <label className="field attribute-kind-field" htmlFor={`attribute-kind-${attribute.id}`}><span className="field-label">Type</span><select id={`attribute-kind-${attribute.id}`} className="input" aria-label={`Attribute type ${index + 1}`} value={attribute.kind} disabled={attribute.required} onChange={(event) => updateAttribute(index, { kind: event.target.value as AttributeKind, value: '' })}>{kinds.map((kind) => <option key={kind} value={kind}>{kind}</option>)}</select></label>
+            <label className="field attribute-value-field" htmlFor={`attribute-value-${attribute.id}`}><span className="field-label">Value</span>{renderValueControl(attribute, index)}</label>
             <button type="button" className="icon-button attribute-remove" aria-label={`Remove attribute ${index + 1}`} disabled={attribute.required} onClick={() => setAttributes((current) => current.filter((_, currentIndex) => currentIndex !== index))}><Trash2 size={15} /></button>
           </div>)}
-          <Button type="button" onClick={() => setAttributes((current) => [...current, { name: '', kind: 'S', value: '' }])}><Plus size={14} />Add attribute</Button>
+          <Button type="button" onClick={() => setAttributes((current) => [...current, { id: createAttributeId(), name: '', kind: 'S', value: '' }])}><Plus size={14} />Add attribute</Button>
           <p className="field-hint editor-hint">For maps, lists, and sets, enter a JSON value using DynamoDB attribute shapes.</p>
         </div> : <>
-          <label className="field" htmlFor="new-item-json"><span className="field-label">DynamoDB JSON</span><JsonCodeEditor id="new-item-json" value={json} onChange={setJson} describedBy="new-item-json-help" /></label>
-          <span id="new-item-json-help" className="field-hint editor-hint">Include the table's required primary key fields and use DynamoDB JSON attribute shapes.</span>
+          <div className="field"><span className="field-label">DynamoDB JSON</span><JsonCodeEditor id="new-item-json" value={json} onChange={setJson} describedBy="new-item-json-help" /></div>
+          <span id="new-item-json-help" className="field-hint editor-hint">Include the table&apos;s required primary key fields and use DynamoDB JSON attribute shapes.</span>
         </>}
         {error && <ErrorState message={error} />}
         <div className="editor-actions"><Button type="button" onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" variant="primary" busy={busy}>Add item</Button></div>
