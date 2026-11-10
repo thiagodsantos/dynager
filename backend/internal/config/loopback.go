@@ -1,9 +1,6 @@
 package config
 
-import (
-	"errors"
-	"net"
-)
+import "net"
 
 func ValidateLoopbackAddress(address string) error {
 	host, _, err := net.SplitHostPort(address)
@@ -15,7 +12,7 @@ func ValidateLoopbackAddress(address string) error {
 	}
 	ip := net.ParseIP(host)
 	if ip == nil || !ip.IsLoopback() {
-		return errors.New("address must be loopback")
+		return errAddressMustBeLoopback
 	}
 	return nil
 }

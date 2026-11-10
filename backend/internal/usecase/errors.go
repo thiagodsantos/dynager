@@ -1,8 +1,19 @@
 package usecase
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type ErrorCode string
+
+type Error struct {
+	Code    ErrorCode
+	Message string
+	Cause   error
+}
+
+var errKeyValueType = errors.New("must be a string, number, or binary value")
 
 const (
 	InvalidArgument ErrorCode = "invalid_argument"
@@ -12,12 +23,6 @@ const (
 	Internal        ErrorCode = "internal"
 )
 
-type Error struct {
-	Code    ErrorCode
-	Message string
-	Cause   error
-}
-
 func (e *Error) Error() string {
 	if e.Cause != nil {
 		return fmt.Sprintf("%s: %v", e.Message, e.Cause)
@@ -26,6 +31,10 @@ func (e *Error) Error() string {
 }
 
 func (e *Error) Unwrap() error { return e.Cause }
+
+func keyTypeMismatch(attributeType string) error {
+	return fmt.Errorf("must use type %s", attributeType)
+}
 
 func invalid(message string) error  { return &Error{Code: InvalidArgument, Message: message} }
 func notFound(message string) error { return &Error{Code: NotFound, Message: message} }

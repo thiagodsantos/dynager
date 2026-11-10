@@ -19,13 +19,25 @@ func (s *Service) ListTables(ctx context.Context, id string) ([]string, error) {
 }
 
 func (s *Service) DescribeTable(ctx context.Context, id, table string) (dynamo.TableDescription, error) {
-	connection, err := s.getConnection(ctx, id)
+	connection, err := s.tableConnection(ctx, id, table)
 	if err != nil {
 		return dynamo.TableDescription{}, err
 	}
-	if err := validateTable(table); err != nil {
-		return dynamo.TableDescription{}, err
+	return s.tableDescription(ctx, connection, table)
+}
+
+func (s *Service) tableConnection(ctx context.Context, id, table string) (Connection, error) {
+	connection, err := s.getConnection(ctx, id)
+	if err != nil {
+		return Connection{}, err
 	}
+	if err := validateTable(table); err != nil {
+		return Connection{}, err
+	}
+	return connection, nil
+}
+
+func (s *Service) tableDescription(ctx context.Context, connection Connection, table string) (dynamo.TableDescription, error) {
 	description, err := s.dynamo.DescribeTable(ctx, toDynamoConnection(connection), table)
 	if err != nil {
 		return dynamo.TableDescription{}, upstream(err)
@@ -34,11 +46,8 @@ func (s *Service) DescribeTable(ctx context.Context, id, table string) (dynamo.T
 }
 
 func (s *Service) ListItems(ctx context.Context, id, table string, limit int32, token string, filter *dynamo.Filter) (dynamo.Page, error) {
-	connection, err := s.getConnection(ctx, id)
+	connection, err := s.tableConnection(ctx, id, table)
 	if err != nil {
-		return dynamo.Page{}, err
-	}
-	if err := validateTable(table); err != nil {
 		return dynamo.Page{}, err
 	}
 	if limit < MinPageSize || limit > MaxPageSize {

@@ -2,7 +2,6 @@ package dynamo
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -76,7 +75,7 @@ func (a *AWSClient) DescribeTable(ctx context.Context, connection Connection, ta
 		return TableDescription{}, err
 	}
 	if output.Table == nil {
-		return TableDescription{}, fmt.Errorf("DynamoDB returned no table description")
+		return TableDescription{}, errMissingTableDescription
 	}
 	attributeTypes := make(map[string]string, len(output.Table.AttributeDefinitions))
 	for _, definition := range output.Table.AttributeDefinitions {
@@ -93,7 +92,7 @@ func (a *AWSClient) DescribeTable(ctx context.Context, connection Connection, ta
 		}
 	}
 	if description.PartitionKey.Name == "" || description.PartitionKey.Type == "" {
-		return TableDescription{}, fmt.Errorf("DynamoDB returned an invalid table key schema")
+		return TableDescription{}, errInvalidTableKeySchema
 	}
 	return description, nil
 }

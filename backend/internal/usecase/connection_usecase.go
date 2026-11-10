@@ -31,15 +31,22 @@ func (s *Service) TestConnection(ctx context.Context, input ConnectionInput) err
 }
 
 func (s *Service) DeleteConnection(ctx context.Context, id string) error {
-	if id == "" {
-		return invalid("Connection ID is required")
+	if err := validateConnectionID(id); err != nil {
+		return err
 	}
 	return s.repository.Delete(ctx, id)
 }
 
-func (s *Service) getConnection(ctx context.Context, id string) (Connection, error) {
+func validateConnectionID(id string) error {
 	if id == "" {
-		return Connection{}, invalid("Connection ID is required")
+		return invalid("Connection ID is required")
+	}
+	return nil
+}
+
+func (s *Service) getConnection(ctx context.Context, id string) (Connection, error) {
+	if err := validateConnectionID(id); err != nil {
+		return Connection{}, err
 	}
 	connection, err := s.repository.Get(ctx, id)
 	if err != nil {

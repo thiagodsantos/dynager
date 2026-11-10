@@ -23,14 +23,14 @@ type fileData struct {
 
 func NewFileRepository(path string) (*FileRepository, error) {
 	if path == "" {
-		return nil, errors.New("config path is required")
+		return nil, errConfigPathRequired
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
-		return nil, errors.New("invalid config path")
+		return nil, errInvalidConfigPath
 	}
 	if err := os.MkdirAll(filepath.Dir(absolute), 0o700); err != nil {
-		return nil, errors.New("could not create config directory")
+		return nil, errCreateConfigDirectory
 	}
 	return &FileRepository{path: absolute}, nil
 }
@@ -113,27 +113,27 @@ func (r *FileRepository) readLocked() ([]usecase.Connection, error) {
 		return []usecase.Connection{}, nil
 	}
 	if err != nil {
-		return nil, errors.New("could not read connection configuration")
+		return nil, errReadConnectionConfiguration
 	}
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	decoder.DisallowUnknownFields()
 	var data fileData
 	if err := decoder.Decode(&data); err != nil {
-		return nil, errors.New("connection configuration is invalid")
+		return nil, errInvalidConnectionConfiguration
 	}
 	var extra any
 	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return nil, errors.New("connection configuration is invalid")
+		return nil, errInvalidConnectionConfiguration
 	}
 	seen := make(map[string]struct{}, len(data.Connections))
 	for _, connection := range data.Connections {
 		clean, err := usecase.ValidateConnectionInput(usecase.ConnectionInput{Name: connection.Name, Region: connection.Region, Profile: connection.Profile, Endpoint: connection.Endpoint})
 		if connection.ID == "" || err != nil || clean.Name != connection.Name || clean.Region != connection.Region || clean.Profile != connection.Profile || clean.Endpoint != connection.Endpoint {
-			return nil, errors.New("connection configuration is invalid")
+			return nil, errInvalidConnectionConfiguration
 		}
 		if _, exists := seen[connection.ID]; exists {
-			return nil, errors.New("connection configuration is invalid")
+			return nil, errInvalidConnectionConfiguration
 		}
 		seen[connection.ID] = struct{}{}
 	}
@@ -143,33 +143,33 @@ func (r *FileRepository) readLocked() ([]usecase.Connection, error) {
 func (r *FileRepository) writeLocked(connections []usecase.Connection) error {
 	content, err := json.MarshalIndent(fileData{Connections: connections}, "", "  ")
 	if err != nil {
-		return errors.New("could not encode connection configuration")
+		return errEncodeConnectionConfiguration
 	}
 	content = append(content, '\n')
 	directory := filepath.Dir(r.path)
 	temporary, err := os.CreateTemp(directory, ".connections-*.tmp")
 	if err != nil {
-		return errors.New("could not write connection configuration")
+		return errWriteConnectionConfiguration
 	}
 	temporaryPath := temporary.Name()
 	defer os.Remove(temporaryPath)
 	if err := temporary.Chmod(0o600); err != nil {
 		temporary.Close()
-		return errors.New("could not secure connection configuration")
+		return errSecureConnectionConfiguration
 	}
 	if _, err := temporary.Write(content); err != nil {
 		temporary.Close()
-		return errors.New("could not write connection configuration")
+		return errWriteConnectionConfiguration
 	}
 	if err := temporary.Sync(); err != nil {
 		temporary.Close()
-		return errors.New("could not write connection configuration")
+		return errWriteConnectionConfiguration
 	}
 	if err := temporary.Close(); err != nil {
-		return errors.New("could not write connection configuration")
+		return errWriteConnectionConfiguration
 	}
 	if err := os.Rename(temporaryPath, r.path); err != nil {
-		return errors.New("could not replace connection configuration")
+		return errReplaceConnectionConfiguration
 	}
 	if directoryFile, err := os.Open(directory); err == nil {
 		_ = directoryFile.Sync()

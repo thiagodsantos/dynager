@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 
@@ -14,12 +13,35 @@ import (
 // Item preserves DynamoDB's typed AttributeValue JSON representation at the API boundary.
 type Item map[string]types.AttributeValue
 
+type Filter struct {
+	Attribute string
+	Operator  string
+	Value     types.AttributeValue
+}
+
+type KeyAttribute struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type TableDescription struct {
+	PartitionKey KeyAttribute
+	SortKey      *KeyAttribute
+}
+
+type Page struct {
+	Items        []Item
+	NextKey      Item
+	Count        int32
+	ScannedCount int32
+}
+
 var numberPattern = regexp.MustCompile(`^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$`)
 
 func (i *Item) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil || raw == nil {
-		return errors.New("item must be a JSON object")
+		return errItemMustBeJSONObject
 	}
 	item := make(Item, len(raw))
 	for name, encoded := range raw {
@@ -61,54 +83,54 @@ func (i Item) MarshalJSON() ([]byte, error) {
 func decodeAttribute(data []byte) (types.AttributeValue, error) {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil || len(fields) != 1 {
-		return nil, errors.New("must contain exactly one DynamoDB type")
+		return nil, errExactlyOneDynamoDBTypeRequired
 	}
 	for kind, value := range fields {
 		switch kind {
 		case "S":
 			var v string
 			if err := json.Unmarshal(value, &v); err != nil {
-				return nil, errors.New("S must be a string")
+				return nil, errStringTypeRequired
 			}
 			return &types.AttributeValueMemberS{Value: v}, nil
 		case "N":
 			var v string
 			if err := json.Unmarshal(value, &v); err != nil || !numberPattern.MatchString(v) {
-				return nil, errors.New("N must be a valid DynamoDB number string")
+				return nil, errNumberTypeRequired
 			}
 
 			return &types.AttributeValueMemberN{Value: v}, nil
 		case "B":
 			var v string
 			if err := json.Unmarshal(value, &v); err != nil {
-				return nil, errors.New("B must be a base64 string")
+				return nil, errBinaryBase64Required
 			}
 			decoded, err := base64.StdEncoding.DecodeString(v)
 			if err != nil {
-				return nil, errors.New("B must be a valid base64 string")
+				return nil, errValidBinaryBase64Required
 			}
 			return &types.AttributeValueMemberB{Value: decoded}, nil
 		case "BOOL":
 			var v bool
 			if err := json.Unmarshal(value, &v); err != nil {
-				return nil, errors.New("BOOL must be a boolean")
+				return nil, errBooleanTypeRequired
 			}
 			return &types.AttributeValueMemberBOOL{Value: v}, nil
 		case "NULL":
 			var v bool
 			if err := json.Unmarshal(value, &v); err != nil || !v {
-				return nil, errors.New("NULL must be true")
+				return nil, errNullMustBeTrue
 			}
 			return &types.AttributeValueMemberNULL{Value: true}, nil
 		case "M":
 			var object map[string]json.RawMessage
 			if err := json.Unmarshal(value, &object); err != nil || object == nil {
-				return nil, errors.New("M must be an object")
+				return nil, errMapTypeRequired
 			}
 			members := make(map[string]types.AttributeValue, len(object))
 			for name, raw := range object {
 				if name == "" || len(name) > 255 {
-					return nil, errors.New("M contains an invalid attribute name")
+					return nil, errMapInvalidAttributeName
 				}
 				member, err := decodeAttribute(raw)
 				if err != nil {
@@ -120,7 +142,7 @@ func decodeAttribute(data []byte) (types.AttributeValue, error) {
 		case "L":
 			var values []json.RawMessage
 			if err := json.Unmarshal(value, &values); err != nil || values == nil {
-				return nil, errors.New("L must be an array")
+				return nil, errListTypeRequired
 			}
 			members := make([]types.AttributeValue, len(values))
 			for index, raw := range values {
@@ -134,7 +156,7 @@ func decodeAttribute(data []byte) (types.AttributeValue, error) {
 		case "SS", "NS", "BS":
 			var values []string
 			if err := json.Unmarshal(value, &values); err != nil || len(values) == 0 {
-				return nil, fmt.Errorf("%s must be a non-empty string array", kind)
+				return nil, fmt.Errorf("%s %w", kind, errNonEmptyStringArrayRequired)
 			}
 			switch kind {
 			case "SS":
@@ -142,7 +164,7 @@ func decodeAttribute(data []byte) (types.AttributeValue, error) {
 			case "NS":
 				for _, v := range values {
 					if !numberPattern.MatchString(v) {
-						return nil, errors.New("NS must contain valid DynamoDB number strings")
+						return nil, errValidNumberSetRequired
 					}
 				}
 				return &types.AttributeValueMemberNS{Value: values}, nil
@@ -151,7 +173,7 @@ func decodeAttribute(data []byte) (types.AttributeValue, error) {
 				for index, v := range values {
 					b, err := base64.StdEncoding.DecodeString(v)
 					if err != nil {
-						return nil, errors.New("BS must contain valid base64 strings")
+						return nil, errValidBinarySetRequired
 					}
 					decoded[index] = b
 				}
@@ -161,7 +183,7 @@ func decodeAttribute(data []byte) (types.AttributeValue, error) {
 			return nil, fmt.Errorf("unsupported DynamoDB type %q", kind)
 		}
 	}
-	return nil, errors.New("missing DynamoDB type")
+	return nil, errMissingDynamoDBType
 }
 
 func encodeAttribute(value types.AttributeValue) ([]byte, error) {
@@ -216,27 +238,4 @@ func encodeAttribute(value types.AttributeValue) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(map[string]json.RawMessage{kind: encoded})
-}
-
-type Filter struct {
-	Attribute string
-	Operator  string
-	Value     types.AttributeValue
-}
-
-type KeyAttribute struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
-type TableDescription struct {
-	PartitionKey KeyAttribute
-	SortKey      *KeyAttribute
-}
-
-type Page struct {
-	Items        []Item
-	NextKey      Item
-	Count        int32
-	ScannedCount int32
 }

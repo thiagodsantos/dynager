@@ -3,8 +3,6 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
-	"io"
-
 	"net/http"
 	"net/url"
 	"strconv"
@@ -21,6 +19,21 @@ type connectionRequest struct {
 	Region   string `json:"region"`
 	Profile  string `json:"profile,omitempty"`
 	Endpoint string `json:"endpoint,omitempty"`
+}
+
+type filterInput struct {
+	Attribute string          `json:"attribute"`
+	Operator  string          `json:"operator"`
+	Value     json.RawMessage `json:"value"`
+}
+
+type putItemRequest struct {
+	Key  dynamo.Item `json:"key"`
+	Item dynamo.Item `json:"item"`
+}
+
+type deleteItemRequest struct {
+	Key dynamo.Item `json:"key"`
 }
 
 func (r connectionRequest) input() usecase.ConnectionInput {
@@ -114,12 +127,6 @@ func describeTable(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-type filterInput struct {
-	Attribute string          `json:"attribute"`
-	Operator  string          `json:"operator"`
-	Value     json.RawMessage `json:"value"`
-}
-
 func parseFilter(value string) (*dynamo.Filter, error) {
 	if value == "" {
 		return nil, nil
@@ -127,15 +134,11 @@ func parseFilter(value string) (*dynamo.Filter, error) {
 	var input filterInput
 	decoder := json.NewDecoder(strings.NewReader(value))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&input); err != nil {
-		return nil, err
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		return nil, errors.New("invalid filter JSON")
+	if err := decodeSingleJSON(decoder, &input); err != nil {
+		return nil, errInvalidFilterJSON
 	}
 	if input.Attribute == "" || input.Operator != dynamo.FilterOperatorEqual || len(input.Value) == 0 {
-		return nil, errors.New("filter requires attribute, operator eq, and value")
+		return nil, errFilterRequirements
 	}
 	encoded, err := json.Marshal(map[string]json.RawMessage{"value": input.Value})
 	if err != nil {
@@ -185,15 +188,6 @@ func listItems(service *usecase.Service) http.HandlerFunc {
 		}
 		writeJSON(w, http.StatusOK, response)
 	}
-}
-
-type putItemRequest struct {
-	Key  dynamo.Item `json:"key"`
-	Item dynamo.Item `json:"item"`
-}
-
-type deleteItemRequest struct {
-	Key dynamo.Item `json:"key"`
 }
 
 func putItem(service *usecase.Service) http.HandlerFunc {

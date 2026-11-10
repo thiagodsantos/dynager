@@ -38,16 +38,13 @@ func (s *Service) DeleteItem(ctx context.Context, id, table string, key dynamo.I
 }
 
 func (s *Service) tableForWrite(ctx context.Context, id, table string) (Connection, dynamo.TableDescription, error) {
-	connection, err := s.getConnection(ctx, id)
+	connection, err := s.tableConnection(ctx, id, table)
 	if err != nil {
 		return Connection{}, dynamo.TableDescription{}, err
 	}
-	if err := validateTable(table); err != nil {
-		return Connection{}, dynamo.TableDescription{}, err
-	}
-	description, err := s.dynamo.DescribeTable(ctx, toDynamoConnection(connection), table)
+	description, err := s.tableDescription(ctx, connection, table)
 	if err != nil {
-		return Connection{}, dynamo.TableDescription{}, upstream(err)
+		return Connection{}, dynamo.TableDescription{}, err
 	}
 	return connection, description, nil
 }

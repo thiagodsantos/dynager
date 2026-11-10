@@ -15,18 +15,24 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+type testItem struct {
+	id      string
+	version string
+	status  string
+}
+
 func TestDynamoDBLocalTableItemFlow(t *testing.T) {
-	endpoint := os.Getenv("DYNAMODB_LOCAL_ENDPOINT")
+	endpoint := os.Getenv(EnvLocalEndpoint)
 	if endpoint == "" {
-		t.Skip("set DYNAMODB_LOCAL_ENDPOINT to run DynamoDB Local integration tests")
+		t.Skipf("set %s to run DynamoDB Local integration tests", EnvLocalEndpoint)
 	}
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Hostname() == "" || (parsed.Hostname() != "localhost" && (net.ParseIP(parsed.Hostname()) == nil || !net.ParseIP(parsed.Hostname()).IsLoopback())) {
-		t.Fatal("DYNAMODB_LOCAL_ENDPOINT must point to localhost")
+		t.Fatalf("%s must point to localhost", EnvLocalEndpoint)
 	}
-	t.Setenv("AWS_ACCESS_KEY_ID", "local")
-	t.Setenv("AWS_SECRET_ACCESS_KEY", "local")
-	t.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+	t.Setenv(EnvAWSAccessKeyID, "local")
+	t.Setenv(EnvAWSSecretAccessKey, "local")
+	t.Setenv(EnvAWSEC2MetadataDisabled, "true")
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion("us-east-1"))
@@ -78,7 +84,7 @@ func TestDynamoDBLocalTableItemFlow(t *testing.T) {
 	if err != nil || description.PartitionKey.Name != "id" || description.PartitionKey.Type != "S" || description.SortKey == nil || description.SortKey.Name != "version" || description.SortKey.Type != "N" {
 		t.Fatalf("description=%#v err=%v", description, err)
 	}
-	for _, value := range []struct{ id, version, status string }{{"1", "1", "keep"}, {"2", "2", "drop"}} {
+	for _, value := range []testItem{{"1", "1", "keep"}, {"2", "2", "drop"}} {
 		item := Item{"id": &types.AttributeValueMemberS{Value: value.id}, "version": &types.AttributeValueMemberN{Value: value.version}, "status": &types.AttributeValueMemberS{Value: value.status}, "count": &types.AttributeValueMemberN{Value: "2"}}
 		if err := api.PutItem(ctx, connection, table, item); err != nil {
 			t.Fatalf("put item %s: %v", value.id, err)

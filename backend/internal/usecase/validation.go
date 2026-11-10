@@ -3,6 +3,7 @@ package usecase
 import (
 	"encoding/json"
 	"fmt"
+
 	"net/url"
 	"regexp"
 	"strings"
@@ -82,10 +83,10 @@ func matchesSchemaType(value types.AttributeValue, attributeType string) error {
 	case *types.AttributeValueMemberB:
 		actual = dynamo.AttributeTypeBinary
 	default:
-		return fmt.Errorf("must be a string, number, or binary value")
+		return errKeyValueType
 	}
 	if actual != attributeType {
-		return fmt.Errorf("must use type %s", attributeType)
+		return keyTypeMismatch(attributeType)
 	}
 	return nil
 }
