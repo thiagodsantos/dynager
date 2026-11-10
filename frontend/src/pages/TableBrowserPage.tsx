@@ -177,7 +177,17 @@ export function TableBrowserPage() {
     finally { setDeleting(false) }
   }
 
-  const columns = useMemo(() => [...new Set(page?.items.flatMap((item) => Object.keys(item)) ?? [])], [page])
+  const columns = useMemo(() => {
+    const partitionKey = metadata?.partitionKey.name
+    const sortKey = metadata?.sortKey?.name
+    return [...new Set(page?.items.flatMap((item) => Object.keys(item)) ?? [])].sort((a, b) => {
+      if (a === partitionKey) return -1
+      if (b === partitionKey) return 1
+      if (a === sortKey) return -1
+      if (b === sortKey) return 1
+      return a.localeCompare(b)
+    })
+  }, [metadata, page])
   const connectionLabel = connection?.name ?? 'Connection'
   const pathToTables = `/connections/${encodeURIComponent(connectionId)}/tables`
   const emptyItemsTitle = activeFilter ? 'No items match this filter' : 'This table is empty'
