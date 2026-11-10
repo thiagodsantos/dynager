@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { AddItemDialog } from '@/components/organisms/AddItemDialog'
-import type { TableDescription } from '@/types/dynamodb'
+import { AttributeType, type TableDescription } from '@/types/dynamodb'
 
 const metadata: TableDescription = {
   tableName: 'events',
-  partitionKey: { name: 'pk', type: 'S' },
-  sortKey: { name: 'sk', type: 'N' },
+  partitionKey: { name: 'pk', type: AttributeType.String },
+  sortKey: { name: 'sk', type: AttributeType.Number },
 }
 
 describe('add item dialog', () => {

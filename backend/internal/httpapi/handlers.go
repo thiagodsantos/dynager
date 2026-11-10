@@ -134,7 +134,7 @@ func parseFilter(value string) (*dynamo.Filter, error) {
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
 		return nil, errors.New("invalid filter JSON")
 	}
-	if input.Attribute == "" || input.Operator != "eq" || len(input.Value) == 0 {
+	if input.Attribute == "" || input.Operator != dynamo.FilterOperatorEqual || len(input.Value) == 0 {
 		return nil, errors.New("filter requires attribute, operator eq, and value")
 	}
 	encoded, err := json.Marshal(map[string]json.RawMessage{"value": input.Value})
@@ -145,7 +145,7 @@ func parseFilter(value string) (*dynamo.Filter, error) {
 	if err := json.Unmarshal(encoded, &typed); err != nil {
 		return nil, err
 	}
-	return &dynamo.Filter{Attribute: input.Attribute, Operator: input.Operator, Value: typed["value"]}, nil
+	return &dynamo.Filter{Attribute: input.Attribute, Operator: dynamo.FilterOperatorEqual, Value: typed["value"]}, nil
 }
 
 func listItems(service *app.Service) http.HandlerFunc {

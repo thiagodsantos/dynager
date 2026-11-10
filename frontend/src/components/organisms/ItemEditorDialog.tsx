@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Code2 } from 'lucide-react'
 import { toast } from 'react-toastify'
-import { Button } from '@/components/atoms/Button'
+import { Button, ButtonVariant } from '@/components/atoms/Button'
 import { JsonCodeEditor } from '@/components/atoms/JsonCodeEditor'
 import { ErrorState } from '@/components/molecules/Feedback'
 import { ItemDialogModal } from '@/components/organisms/ItemDialogModal'
@@ -37,7 +37,7 @@ export function ItemEditorDialog({ item, metadata, busy, onClose, onSave }: {
         <div className="field"><span className="field-label">DynamoDB JSON</span><JsonCodeEditor id="item-json" value={json} onChange={setJson} describedBy="item-json-help" /></div>
         <span id="item-json-help" className="field-hint editor-hint">Use DynamoDB JSON attribute shapes: S, N, BOOL, NULL, M, L, SS, NS, BS, or B.</span>
         {error && <ErrorState message={error} />}
-        <div className="editor-actions"><Button type="button" onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" variant="primary" busy={busy}>Save changes</Button></div>
+        <div className="editor-actions"><Button type="button" onClick={onClose} disabled={busy}>Cancel</Button><Button type="submit" variant={ButtonVariant.Primary} busy={busy}>Save changes</Button></div>
       </form>
   </ItemDialogModal>
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getItemKey, isAttributeValue, isItem } from '@/types/dynamodb'
+import { AttributeType, getItemKey, isAttributeValue, isItem } from '@/types/dynamodb'
 import type { TableDescription } from '@/types/dynamodb'
 
 describe('DynamoDB JSON validation', () => {
@@ -19,7 +19,7 @@ describe('DynamoDB JSON validation', () => {
   })
 
   it('extracts complete partition and sort keys without changing DynamoDB types', () => {
-    const metadata: TableDescription = { tableName: 'events', partitionKey: { name: 'pk', type: 'S' }, sortKey: { name: 'sk', type: 'N' } }
+    const metadata: TableDescription = { tableName: 'events', partitionKey: { name: 'pk', type: AttributeType.String }, sortKey: { name: 'sk', type: AttributeType.Number } }
     const key = getItemKey({ pk: { S: 'USER#1' }, sk: { N: '17' }, status: { BOOL: true } }, metadata)
     expect(key).toEqual({ pk: { S: 'USER#1' }, sk: { N: '17' } })
     expect(getItemKey({ pk: { S: 'USER#1' } }, metadata)).toBeNull()

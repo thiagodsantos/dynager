@@ -1,11 +1,11 @@
 package httpapi
 
 import (
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog"
 )
 
 type responseRecorder struct {
@@ -28,7 +28,7 @@ func (w *responseRecorder) Write(data []byte) (int, error) {
 	return w.ResponseWriter.Write(data)
 }
 
-func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
+func requestLogger(logger *zerolog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			started := time.Now()
@@ -38,17 +38,23 @@ func requestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 			if status == 0 {
 				status = http.StatusOK
 			}
-			logger.Info("http request", "method", r.Method, "path", r.URL.Path, "status", status, "duration_ms", time.Since(started).Milliseconds(), "request_id", middleware.GetReqID(r.Context()))
+			logEvent := logger.Info()
+			if status >= http.StatusInternalServerError {
+				logEvent = logger.Error()
+			} else if status >= http.StatusBadRequest {
+				logEvent = logger.Warn()
+			}
+			logEvent.Str("method", r.Method).Str("path", r.URL.Path).Int("status", status).Int64("duration_ms", time.Since(started).Milliseconds()).Str("request_id", middleware.GetReqID(r.Context())).Msg("http request")
 		})
 	}
 }
 
-func recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
+func recoverer(logger *zerolog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if recover() != nil {
-					logger.Error("http request panicked", "request_id", middleware.GetReqID(r.Context()))
+					logger.Error().Str("request_id", middleware.GetReqID(r.Context())).Msg("http request panicked")
 					writeErrorResponse(w, http.StatusInternalServerError, "internal_error", "Internal server error")
 				}
 			}()

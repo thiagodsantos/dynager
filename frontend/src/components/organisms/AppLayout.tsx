@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Activity, Boxes, ChevronRight, Database, Menu, Moon, Plus, Sun, X } from 'lucide-react'
-import type { Theme } from '@/lib/theme'
+import { Theme } from '@/lib/theme'
 
 interface AppLayoutProps {
   theme: Theme
@@ -32,7 +32,7 @@ export function AppLayout({ theme, onThemeToggle }: AppLayoutProps) {
     <div className="main-column">
       <header className="topbar">
         <div className="topbar-left"><button type="button" className="icon-button mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{breadcrumbTitle}</strong></div></div>
-        <div className="topbar-actions"><span className="api-indicator"><span />API workspace</span><button type="button" className="icon-button theme-toggle" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} onClick={onThemeToggle}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button><span className="user-avatar" title="Local workspace">LW</span></div>
+        <div className="topbar-actions"><span className="api-indicator"><span />API workspace</span><button type="button" className="icon-button theme-toggle" aria-label={`Switch to ${theme === Theme.Dark ? Theme.Light : Theme.Dark} theme`} onClick={onThemeToggle}>{theme === Theme.Dark ? <Sun size={18} /> : <Moon size={18} />}</button><span className="user-avatar" title="Local workspace">LW</span></div>
       </header>
       <main className="main-content"><Outlet /></main>
       <footer className="page-footer"><span>dynager <span className="footer-dot">·</span> DynamoDB manager</span><span>Local-first, credential-safe by design</span></footer>

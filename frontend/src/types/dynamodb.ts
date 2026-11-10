@@ -12,12 +12,28 @@ export type AttributeValue =
   | { BS: string[] }
   | { B: string }
 
-export type KeyType = 'HASH' | 'RANGE'
+export enum KeyType {
+  Hash = 'HASH',
+  Range = 'RANGE',
+}
+
+export enum AttributeType {
+  String = 'S',
+  Number = 'N',
+  Binary = 'B',
+  Boolean = 'BOOL',
+  Null = 'NULL',
+  Map = 'M',
+  List = 'L',
+  StringSet = 'SS',
+  NumberSet = 'NS',
+  BinarySet = 'BS',
+}
 
 export interface TableDescription {
   tableName: string
-  partitionKey: { name: string; type: string }
-  sortKey?: { name: string; type: string }
+  partitionKey: { name: string; type: AttributeType }
+  sortKey?: { name: string; type: AttributeType }
 }
 
 export interface TableSummary {
@@ -31,7 +47,7 @@ export interface ItemPage {
   scannedCount: number
 }
 
-const attributeKeys = new Set(['S', 'N', 'BOOL', 'NULL', 'M', 'L', 'SS', 'NS', 'BS', 'B'])
+const attributeKeys = new Set<string>(Object.values(AttributeType))
 
 export function isAttributeValue(value: unknown): value is AttributeValue {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false

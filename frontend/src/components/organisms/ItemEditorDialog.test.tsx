@@ -1,12 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ItemEditorDialog } from '@/components/organisms/ItemEditorDialog'
-import type { Item, TableDescription } from '@/types/dynamodb'
+import { AttributeType, type Item, type TableDescription } from '@/types/dynamodb'
 
 const metadata: TableDescription = {
   tableName: 'events',
-  partitionKey: { name: 'pk', type: 'S' },
-  sortKey: { name: 'sk', type: 'N' },
+  partitionKey: { name: 'pk', type: AttributeType.String },
+  sortKey: { name: 'sk', type: AttributeType.Number },
 }
 const item: Item = { pk: { S: 'USER#1' }, sk: { N: '17' }, active: { BOOL: true } }
 

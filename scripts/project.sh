@@ -61,6 +61,7 @@ DynamoDB Manager project commands:
   install           Install frontend dependencies and download Go modules
   run               Start the frontend dev script, if defined
   run-backend       Start backend/cmd/server (override BACKEND_RUN_PACKAGE if needed)
+  run-backend-dummy Start the backend with dummy AWS credentials for local use
   build             Build frontend and Go packages
   test              Run unit and Docker-backed integration tests
   test-unit         Run frontend and Go unit tests

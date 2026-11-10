@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PROJECT_SCRIPT := ./scripts/project.sh
 
-.PHONY: help install run run-backend build test test-unit test-integration lint lint-fix format clean dev-up dev-down dev-recreate test-up test-down test-recreate
+.PHONY: help install run run-backend run-backend-dummy build test test-unit test-integration lint lint-fix format clean dev-up dev-down dev-recreate test-up test-down test-recreate
 
 help: ## List available project commands
 	@$(PROJECT_SCRIPT) $@
@@ -14,6 +14,9 @@ run: ## Start the frontend dev script, if defined
 
 run-backend: ## Start the Go backend
 	@$(PROJECT_SCRIPT) $@
+
+run-backend-dummy: ## Start the Go backend with dummy AWS credentials for local use
+	AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy AWS_REGION=us-east-1 $(MAKE) run-backend
 
 build: ## Build frontend and Go packages
 	@$(PROJECT_SCRIPT) $@

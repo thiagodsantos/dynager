@@ -1,9 +1,9 @@
 package httpapi
 
 import (
-	"log/slog"
 	"net/http"
-	"strings"
+
+	"github.com/rs/zerolog"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,16 +11,16 @@ import (
 	"github.com/thiagosantos/dynamodb-manager/backend/internal/app"
 )
 
-func NewRouter(service *app.Service, allowedOrigins []string, logger *slog.Logger) http.Handler {
+func NewRouter(service *app.Service, allowedOrigins []string, logger *zerolog.Logger) http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(recoverer(logger))
 	router.Use(requestLogger(logger))
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Content-Type", "X-API-Version"},
-		ExposedHeaders:   []string{"X-Request-ID"},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{HeaderAccept, HeaderContentType, HeaderAPIVersion},
+		ExposedHeaders:   []string{HeaderRequestID},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
@@ -46,15 +46,4 @@ func NewRouter(service *app.Service, allowedOrigins []string, logger *slog.Logge
 		api.Delete("/connections/{connectionID}/tables/{tableName}/items", deleteItem(service))
 	})
 	return router
-}
-
-func apiVersion(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		version := strings.TrimSpace(r.Header.Get("X-API-Version"))
-		if version != "v1" {
-			writeErrorResponse(w, http.StatusBadRequest, "unsupported_api_version", "X-API-Version must be v1")
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }

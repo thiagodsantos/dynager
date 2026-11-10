@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Cloud, ShieldCheck, Wifi } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { api } from '@/lib/api'
 import type { ConnectionInput } from '@/types/api'
-import { Button } from '@/components/atoms/Button'
+import { Button, ButtonVariant } from '@/components/atoms/Button'
 import { Field } from '@/components/atoms/Field'
 import { ErrorState } from '@/components/molecules/Feedback'
 import { PageHeader } from '@/components/templates/PageHeader'
@@ -80,7 +80,7 @@ export function ConnectionSetupPage() {
         <div className="security-callout"><ShieldCheck size={19} /><div><strong>Your AWS credentials are never entered here.</strong><p>dynager uses the backend’s AWS SDK credential chain. Access keys and session tokens are never sent to or stored by this browser.</p></div></div>
         {error && <ErrorState message={error} />}
 
-        <div className="form-actions"><Button type="button" onClick={() => { void testConnection() }} busy={testing}><Wifi size={16} />Test connection</Button><Button type="submit" variant="primary" busy={saving}><Check size={16} />Save connection</Button></div>
+        <div className="form-actions"><Button type="button" onClick={() => { void testConnection() }} busy={testing}><Wifi size={16} />Test connection</Button><Button type="submit" variant={ButtonVariant.Primary} busy={saving}><Check size={16} />Save connection</Button></div>
       </form>
       <aside className="setup-aside">
         <div className="info-card info-card-purple"><span className="info-icon"><Cloud size={19} /></span><p className="eyebrow">SECURE BY DEFAULT</p><h3>No secrets in the browser</h3><p>Credentials are resolved by your backend using its configured AWS credential provider. Connection settings contain only a name, region, optional profile, and endpoint.</p><div className="info-check"><ShieldCheck size={15} />No access key fields</div><div className="info-check"><ShieldCheck size={15} />No browser credential storage</div></div>

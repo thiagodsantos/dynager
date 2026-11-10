@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
+
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/rs/zerolog"
 	"github.com/thiagosantos/dynamodb-manager/backend/internal/app"
 	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
 )
@@ -65,8 +66,8 @@ func (*testDynamo) DeleteItem(context.Context, dynamo.Connection, string, dynamo
 func newTestHandler() (http.Handler, *testDynamo) {
 	repository := &testRepository{connections: map[string]app.Connection{"conn": {ID: "conn", Name: "test", Region: "us-east-1"}}}
 	client := &testDynamo{}
-	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-	return NewRouter(app.NewService(repository, client), []string{"http://localhost:5173"}, logger), client
+	logger := zerolog.New(&strings.Builder{})
+	return NewRouter(app.NewService(repository, client), []string{"http://localhost:5173"}, &logger), client
 }
 
 func TestHealthDoesNotRequireVersionAndAPIDoes(t *testing.T) {
@@ -107,8 +108,8 @@ func TestCreateConnectionDoesNotReturnCredentialFieldsAndVersionIsAccepted(t *te
 func TestTestConnectionFailureIsSanitizedAndNotPersisted(t *testing.T) {
 	repository := &testRepository{connections: map[string]app.Connection{}}
 	client := &testDynamo{testErr: errors.New("secret credential value")}
-	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-	handler := NewRouter(app.NewService(repository, client), nil, logger)
+	logger := zerolog.New(&strings.Builder{})
+	handler := NewRouter(app.NewService(repository, client), nil, &logger)
 	request := httptest.NewRequest(http.MethodPost, "/api/connections/test", strings.NewReader(`{"name":"try","region":"us-east-1"}`))
 	request.Header.Set("X-API-Version", "v1")
 	response := httptest.NewRecorder()

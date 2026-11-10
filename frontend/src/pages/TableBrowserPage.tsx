@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { getAttributeKind, getAttributePreview } from '@/lib/format'
 import { getItemKey, isAttributeValue, type AttributeValue, type Item, type ItemPage, type TableDescription } from '@/types/dynamodb'
 import type { Connection, TableSummary } from '@/types/api'
-import { Button } from '@/components/atoms/Button'
+import { Button, ButtonSize, ButtonVariant } from '@/components/atoms/Button'
 import { Field, TextAreaField } from '@/components/atoms/Field'
 import { StatusBadge } from '@/components/atoms/StatusBadge'
 import { EmptyState, ErrorState, LoadingState } from '@/components/molecules/Feedback'
@@ -188,7 +188,7 @@ export function TableBrowserPage() {
 
   return <>
     <div className="back-link-row"><Link className="back-link" to="/connections"><ArrowLeft size={15} />Connections</Link><span>/</span><span>{connectionLabel}</span></div>
-    <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<><Button onClick={() => { if (tableName) loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>{tableName && metadata && <Button variant="primary" onClick={() => setAddItemOpen(true)}><Plus size={15} />Add item</Button>}</>} />
+    <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<><Button onClick={() => { if (tableName) loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>{tableName && metadata && <Button variant={ButtonVariant.Primary} onClick={() => setAddItemOpen(true)}><Plus size={15} />Add item</Button>}</>} />
     {tablesError && <ErrorState message={tablesError} onRetry={() => navigate(pathToTables)} />}
     {tablesLoading ? <LoadingState label="Loading tables…" /> : <div className="browser-layout">
       <aside className="table-rail panel">
@@ -209,7 +209,7 @@ export function TableBrowserPage() {
             </div>
             <div className="panel filter-panel">
               <div className="filter-heading"><span className="filter-icon"><Filter size={16} /></span><div><h2>Filter items</h2><p>Equality filters scan the table. Broad scans may consume read capacity.</p></div><span className="scan-note">SCAN FILTER</span></div>
-              <div className="filter-controls"><Field label="Attribute" aria-label="Filter attribute" placeholder="e.g. status" value={filterName} onChange={(event) => setFilterName(event.target.value)} /><TextAreaField label="Typed value (DynamoDB JSON)" aria-label="Typed filter value" rows={1} placeholder='{"S":"active"}' value={filterValue} onChange={(event) => setFilterValue(event.target.value)} /><div className="filter-buttons"><Button variant="primary" onClick={applyFilter}><Search size={15} />Apply</Button>{activeFilter && <Button onClick={clearFilter}><X size={15} />Clear</Button>}</div></div>
+              <div className="filter-controls"><Field label="Attribute" aria-label="Filter attribute" placeholder="e.g. status" value={filterName} onChange={(event) => setFilterName(event.target.value)} /><TextAreaField label="Typed value (DynamoDB JSON)" aria-label="Typed filter value" rows={1} placeholder='{"S":"active"}' value={filterValue} onChange={(event) => setFilterValue(event.target.value)} /><div className="filter-buttons"><Button variant={ButtonVariant.Primary} onClick={applyFilter}><Search size={15} />Apply</Button>{activeFilter && <Button onClick={clearFilter}><X size={15} />Clear</Button>}</div></div>
               {filterError && <ErrorState message={filterError} />}
               {activeFilter && <div className="active-filter"><span>Active: <strong>{activeFilter.attribute}</strong> equals <code>{JSON.stringify(activeFilter.value)}</code></span><button type="button" aria-label="Clear filter" className="text-button" onClick={clearFilter}>Clear</button></div>}
             </div>
@@ -221,7 +221,7 @@ export function TableBrowserPage() {
               {!pageLoading && page?.items.length === 0 && <EmptyState title={emptyItemsTitle} description={emptyItemsDescription} action={emptyItemsAction} />}
               {!pageLoading && page && page.items.length > 0 && <>
                 <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={JSON.stringify(getItemKey(item, metadata) ?? item)}><td className="row-number">{index + 1 + pageIndex * PAGE_SIZE}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button type="button" className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button type="button" className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => setDeleteTarget(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
-                <div className="pagination"><span>Showing <strong>{page.items.length ? pageIndex * PAGE_SIZE + 1 : 0}–{pageIndex * PAGE_SIZE + page.items.length}</strong> of scanned records</span><div><Button size="sm" onClick={goPrevious} disabled={pageIndex === 0 || pageLoading}><ArrowLeft size={14} />Previous</Button><span className="page-number">{pageIndex + 1}</span><Button size="sm" onClick={goNext} disabled={!page.nextToken || pageLoading}>Next<ArrowRight size={14} /></Button></div></div>
+                <div className="pagination"><span>Showing <strong>{page.items.length ? pageIndex * PAGE_SIZE + 1 : 0}–{pageIndex * PAGE_SIZE + page.items.length}</strong> of scanned records</span><div><Button size={ButtonSize.Small} onClick={goPrevious} disabled={pageIndex === 0 || pageLoading}><ArrowLeft size={14} />Previous</Button><span className="page-number">{pageIndex + 1}</span><Button size={ButtonSize.Small} onClick={goNext} disabled={!page.nextToken || pageLoading}>Next<ArrowRight size={14} /></Button></div></div>
               </>}
             </section>
           </>}

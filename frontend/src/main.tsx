@@ -3,14 +3,14 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import { App } from '@/App'
-import { applyTheme, getInitialTheme, type Theme } from '@/lib/theme'
+import { applyTheme, getInitialTheme, Theme } from '@/lib/theme'
 import 'react-toastify/dist/ReactToastify.css'
 import '@/index.css'
 
 function Root() {
   const [theme, setTheme] = useState<Theme>(() => getInitialTheme())
   function toggleTheme() {
-    const next = theme === 'dark' ? 'light' : 'dark'
+    const next = theme === Theme.Dark ? Theme.Light : Theme.Dark
     applyTheme(next)
     setTheme(next)
   }
