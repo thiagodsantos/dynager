@@ -142,6 +142,15 @@ Finalize request/response schemas and the connection identifier/storage model be
 
 ## 7. Agent and skill setup
 
+Use technology-specialized agents with clear ownership. The coordinating agent assigns work, resolves cross-stack decisions, and ensures the frontend/backend contract remains consistent; specialized agents should not independently change another agent's owned area without coordination.
+
+- **Frontend agent:** owns `frontend/` and the React, TypeScript, Vite, Tailwind, routing, accessibility, and browser-side test work. It must keep AWS credentials and DynamoDB access out of the browser and use the typed REST API client.
+- **Backend agent:** owns `backend/` and the Go, `chi`, AWS SDK, API, connection configuration, and backend test work. It must enforce API versioning, validate inputs, sanitize errors, and never expose or log secrets.
+- **Platform/DevEx agent:** owns root build and local-development tooling, including the `Makefile`, `deploy/` Docker Compose setup, and environment/configuration examples. It coordinates commands and interfaces with both application agents rather than embedding application logic in tooling.
+- **Test/quality agent:** owns cross-stack test strategy and integration-test coordination, including DynamoDB Local fixtures and verification of the documented workflows. It may add tests in either stack in coordination with that stack's owner, but should not change production behavior solely to satisfy a test.
+
+Agents should agree on API schemas and shared commands before parallel implementation, keep changes within their ownership boundaries, and report assumptions or blockers that affect another stack.
+
 - Review the referenced Matt Pocock skills repository and select only skills useful to this project (for example, test-driven implementation, code review, and frontend/backend conventions).
 - Record the source URL, selected skill versions/revisions, installation/use instructions, and any license requirements in `agents/README.md`.
 - Keep project-specific agent instructions focused on repository commands, architecture boundaries, security rules, and testing expectations. Avoid installing or invoking skills blindly; review their contents before use.
