@@ -1,4 +1,4 @@
-# Keyspace frontend
+# dynager — DynamoDB manager frontend
 
 A responsive React + TypeScript workspace for exploring DynamoDB connections, tables, and typed items.
 

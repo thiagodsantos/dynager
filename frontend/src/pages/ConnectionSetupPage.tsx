@@ -68,14 +68,14 @@ export function ConnectionSetupPage() {
     <PageHeader eyebrow="Connection settings" title="Connect to DynamoDB" description="Choose a region and let the backend resolve credentials securely." actions={<Link className="button button-secondary button-md" to="/connections"><ArrowLeft size={15} />All connections</Link>} />
     <div className="setup-layout">
       <form className="panel setup-form" onSubmit={(event) => void save(event)}>
-        <div className="panel-title-row"><div><span className="step-indicator">01</span><div><h2>Connection details</h2><p>Tell Keyspace where your DynamoDB service lives.</p></div></div><span className="form-required">* Required</span></div>
+        <div className="panel-title-row"><div><span className="step-indicator">01</span><div><h2>Connection details</h2><p>Tell dynager where your DynamoDB service lives.</p></div></div><span className="form-required">* Required</span></div>
         <div className="form-grid">
           <Field label="Connection name" placeholder="e.g. Development" autoComplete="off" required value={form.name} onChange={(event) => update('name', event.target.value)} />
           <Field label="AWS region" placeholder="e.g. us-east-1" autoComplete="off" required value={form.region} onChange={(event) => update('region', event.target.value)} hint="The region where your DynamoDB tables are hosted." />
           <Field label="AWS profile" placeholder="Optional · default" autoComplete="off" value={form.profile} onChange={(event) => update('profile', event.target.value)} hint="Uses the AWS SDK credential chain when left blank." />
           <Field label="Custom endpoint" placeholder="http://127.0.0.1:8001" autoComplete="url" value={form.endpoint} onChange={(event) => update('endpoint', event.target.value)} hint="For the seeded dev database use port 8001. Port 8080 is the DynamoDB Manager API." />
         </div>
-        <div className="security-callout"><ShieldCheck size={19} /><div><strong>Your AWS credentials are never entered here.</strong><p>Keyspace uses the backend’s AWS SDK credential chain. Access keys and session tokens are never sent to or stored by this browser.</p></div></div>
+        <div className="security-callout"><ShieldCheck size={19} /><div><strong>Your AWS credentials are never entered here.</strong><p>dynager uses the backend’s AWS SDK credential chain. Access keys and session tokens are never sent to or stored by this browser.</p></div></div>
         {error && <ErrorState message={error} />}
         {testResult && <InlineNotice tone={testResult.success ? 'success' : 'error'}>{testResult.message}</InlineNotice>}
         <div className="form-actions"><Button type="button" onClick={() => void testConnection()} busy={testing}><Wifi size={16} />Test connection</Button><Button type="submit" variant="primary" busy={saving}><Check size={16} />Save connection</Button></div>
