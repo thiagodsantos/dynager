@@ -63,7 +63,7 @@ func main() {
 			logger.Error().Err(err).Msg("graceful shutdown failed")
 		}
 	}()
-	logger.Info().Str("address", address).Str("config", configPath).Msg("DynamoDB Manager API listening")
+	logger.Info().Str("address", address).Str("config", configPath).Msg("Dynager API listening")
 	if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error().Err(err).Msg("HTTP server stopped unexpectedly")
 		os.Exit(1)

@@ -56,7 +56,7 @@ run_go_module_command() {
 
 run_help() {
   cat <<'EOF'
-DynamoDB Manager project commands:
+Dynager project commands:
   help              Show this command list
   install           Install frontend dependencies and download Go modules
   run               Start the frontend dev script, if defined

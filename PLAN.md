@@ -1,4 +1,4 @@
-# DynamoDB Manager — Implementation Plan
+# Dynager — Implementation Plan
 
 ## 1. Goal
 

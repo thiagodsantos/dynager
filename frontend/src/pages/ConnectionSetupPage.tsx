@@ -75,7 +75,7 @@ export function ConnectionSetupPage() {
           <Field label="Connection name" placeholder="e.g. Development" autoComplete="off" required value={form.name} onChange={(event) => update('name', event.target.value)} />
           <Field label="AWS region" placeholder="e.g. us-east-1" autoComplete="off" required value={form.region} onChange={(event) => update('region', event.target.value)} hint="The region where your DynamoDB tables are hosted." />
           <Field label="AWS profile" placeholder="Optional · default" autoComplete="off" value={form.profile} onChange={(event) => update('profile', event.target.value)} hint="Uses the AWS SDK credential chain when left blank." />
-          <Field label="Custom endpoint" placeholder="http://127.0.0.1:8001" autoComplete="url" value={form.endpoint} onChange={(event) => update('endpoint', event.target.value)} hint="For the seeded dev database use port 8001. Port 8080 is the DynamoDB Manager API." />
+          <Field label="Custom endpoint" placeholder="http://127.0.0.1:8001" autoComplete="url" value={form.endpoint} onChange={(event) => update('endpoint', event.target.value)} hint="For the seeded dev database use port 8001. Port 8080 is the Dynager API." />
         </div>
         <div className="security-callout"><ShieldCheck size={19} /><div><strong>Your AWS credentials are never entered here.</strong><p>dynager uses the backend’s AWS SDK credential chain. Access keys and session tokens are never sent to or stored by this browser.</p></div></div>
         {error && <ErrorState message={error} />}

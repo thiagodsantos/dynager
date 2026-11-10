@@ -1,8 +1,8 @@
-# DynamoDB Manager
+# Dynager
 
 A local web application for configuring DynamoDB connections, browsing tables and items, filtering records, and adding, editing, or deleting items. Item creation and editing use a shared modal, with a typed attribute builder and syntax-highlighted DynamoDB JSON. Destructive actions require confirmation, and operation results are reported with toast notifications. The frontend is a Vite/React/TypeScript app; the Go API uses chi and the AWS SDK for Go v2.
 
-![DynamoDB Manager table explorer](assets/explorer.png)
+![Dynager table explorer](assets/explorer.png)
 
 ## Architecture and security boundary
 

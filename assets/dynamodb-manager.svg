@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">DynamoDB Manager</title>
+  <title id="title">Dynager</title>
   <desc id="desc">An original database stack with a highlighted record.</desc>
   <rect width="64" height="64" rx="14" fill="#172554"/>
   <path d="M15 19c0-4 7.6-7 17-7s17 3 17 7-7.6 7-17 7-17-3-17-7Z" fill="#38bdf8"/>

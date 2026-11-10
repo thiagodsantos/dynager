@@ -1,4 +1,4 @@
-# DynamoDB Manager backend
+# Dynager backend
 
 The API is a trusted local single-user service. It only listens on a loopback address and uses the AWS SDK for Go v2 default credential chain (including an optional shared-config profile). AWS credentials are never accepted by the API, persisted, returned, or logged.
 
