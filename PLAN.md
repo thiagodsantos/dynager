@@ -29,7 +29,7 @@ Build a modern, responsive web application for configuring DynamoDB connections,
 .
 ├── frontend/                # Vite + React + TypeScript application
 ├── backend/                 # Go REST API
-├── deploy/                  # Docker Compose and local development support
+├── docker/                  # Dev/test Docker Compose environments and fixtures
 ├── agents/                  # Project agent/skill configuration and usage notes
 ├── assets/                  # Application icon and related source assets
 ├── Makefile                 # Common install, run, test, build, and lint commands
@@ -146,7 +146,7 @@ Use technology-specialized agents with clear ownership. The coordinating agent a
 
 - **Frontend agent:** owns `frontend/` and the React, TypeScript, Vite, Tailwind, routing, accessibility, and browser-side test work. It must keep AWS credentials and DynamoDB access out of the browser and use the typed REST API client.
 - **Backend agent:** owns `backend/` and the Go, `chi`, AWS SDK, API, connection configuration, and backend test work. It must enforce API versioning, validate inputs, sanitize errors, and never expose or log secrets.
-- **Platform/DevEx agent:** owns root build and local-development tooling, including the `Makefile`, `deploy/` Docker Compose setup, and environment/configuration examples. It coordinates commands and interfaces with both application agents rather than embedding application logic in tooling.
+- **Platform/DevEx agent:** owns root build and local-development tooling, including the `Makefile`, `docker/` Compose setup, and environment/configuration examples. It coordinates commands and interfaces with both application agents rather than embedding application logic in tooling.
 - **Test/quality agent:** owns cross-stack test strategy and integration-test coordination, including DynamoDB Local fixtures and verification of the documented workflows. It may add tests in either stack in coordination with that stack's owner, but should not change production behavior solely to satisfy a test.
 
 Agents should agree on API schemas and shared commands before parallel implementation, keep changes within their ownership boundaries, and report assumptions or blockers that affect another stack.

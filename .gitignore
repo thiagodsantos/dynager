@@ -1,0 +1,18 @@
+# Local environment and secrets; keep the checked-in example.
+.env
+.env.*
+!.env.example
+
+# Generated frontend artifacts.
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+
+# Generated Go artifacts.
+backend/bin/
+backend/coverage.out
+
+# Go and TypeScript build caches.
+*.test
+*.tsbuildinfo
