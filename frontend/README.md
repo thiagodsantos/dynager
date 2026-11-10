@@ -17,9 +17,13 @@ Vite proxies `/api` to `http://localhost:8080` by default. Set `DYNAMODB_MANAGER
 
 ```sh
 pnpm run check
+pnpm run lint
+pnpm run format:check
 pnpm test
 pnpm run build
 ```
+
+ESLint extends the Airbnb JavaScript/React style guide with TypeScript support. Use `pnpm run format` to apply Prettier formatting.
 
 ## Credential safety
 

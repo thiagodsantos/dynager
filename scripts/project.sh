@@ -65,7 +65,8 @@ DynamoDB Manager project commands:
   test              Run unit and Docker-backed integration tests
   test-unit         Run frontend and Go unit tests
   test-integration  Run the DynamoDB Local integration test in Go
-  lint              Run the frontend lint script and go vet
+  lint              Run frontend ESLint/TypeScript checks and Go vet/format checks
+  lint-fix          Apply frontend ESLint autofixes
   format            Run the frontend format script and gofmt
   clean             Run app clean scripts and go clean
   dev-up            Start dev DynamoDB Local and seed demo data
@@ -207,6 +208,10 @@ run_lint() {
   fi
 }
 
+run_lint_fix() {
+  run_frontend_script lint:fix
+}
+
 run_format() {
   run_frontend_script format
   if has_go_module && has_go_source; then
@@ -237,6 +242,7 @@ case "$command" in
   test-unit) run_test_unit ;;
   test-integration) run_test_integration ;;
   lint) run_lint ;;
+  lint-fix) run_lint_fix ;;
   format) run_format ;;
   clean) run_clean ;;
   dev-up) run_dev_up ;;

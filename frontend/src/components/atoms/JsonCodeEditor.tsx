@@ -8,7 +8,7 @@ function highlightJson(json: string) {
 
   for (const match of json.matchAll(jsonTokenPattern)) {
     const token = match[0]
-    const index = match.index
+    const {index} = match
     if (index > lastIndex) tokens.push(json.slice(lastIndex, index))
 
     let className = 'json-token-punctuation'

@@ -27,7 +27,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       const body: unknown = await response.json()
       if (body && typeof body === 'object' && 'message' in body && typeof body.message === 'string') message = body.message
       else if (body && typeof body === 'object' && 'error' in body) {
-        const error = body.error
+        const {error} = body
         if (typeof error === 'string') message = error
         else if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') message = error.message
       }

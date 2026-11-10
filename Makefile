@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PROJECT_SCRIPT := ./scripts/project.sh
 
-.PHONY: help install run run-backend build test test-unit test-integration lint format clean dev-up dev-down dev-recreate test-up test-down test-recreate
+.PHONY: help install run run-backend build test test-unit test-integration lint lint-fix format clean dev-up dev-down dev-recreate test-up test-down test-recreate
 
 help: ## List available project commands
 	@$(PROJECT_SCRIPT) $@
@@ -26,7 +26,10 @@ test-unit: ## Run frontend and Go unit tests
 test-integration: ## Run Go integration tests against DynamoDB Local
 	@$(PROJECT_SCRIPT) $@
 
-lint: ## Run frontend checks and go vet
+lint: ## Run frontend ESLint/TypeScript checks and Go vet/format checks
+	@$(PROJECT_SCRIPT) $@
+
+lint-fix: ## Apply frontend ESLint autofixes
 	@$(PROJECT_SCRIPT) $@
 
 format: ## Run the frontend formatter and gofmt

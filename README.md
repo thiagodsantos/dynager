@@ -178,8 +178,8 @@ The test container in `docker/test.yaml` is in-memory and isolated from dev data
 make test-unit         # frontend tests and Go unit tests; no Docker/AWS required
 make test-integration  # starts DynamoDB Local, runs the Go integration test, cleans up
 make test              # unit plus integration tests
-make lint              # frontend TypeScript check and Go vet/format check
-make format            # frontend formatter if configured and gofmt
+make lint              # frontend Airbnb ESLint/TypeScript checks and Go vet/format check
+make format            # frontend Prettier and gofmt
 make clean
 ```
 
