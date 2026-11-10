@@ -16,6 +16,8 @@ This repository is a trusted, local, single-user DynamoDB manager. Read the root
 - Persist only non-secret connection settings in the backend (for example, region, endpoint, and AWS profile name). Resolve credentials through the AWS SDK's normal environment/shared-profile credential chain. Never persist AWS credentials in app-managed storage, return them from the API, or place them in browser storage.
 - Record and follow the backend's eventual configuration contract; `make test-integration` sets `DYNAMODB_LOCAL_ENDPOINT` for the local test endpoint; the integration test uses disposable dummy credentials and never contacts AWS.
 - Record browsing as a bounded, paginated DynamoDB `Scan`, with at most one optional equality filter. A Scan can still read many records and consume capacity; keep limits enforced server-side and communicate the limitation in the UI.
+- Keep item add/edit flows in the shared item modal. Adding defaults to the typed attribute builder and also supports syntax-highlighted DynamoDB JSON; validate the complete table key before writes.
+- Use the reusable confirmation dialog for destructive actions instead of `window.confirm`. Keep a single React Toastify container at the app root; use toasts for operation success/failure and inline feedback for local validation and background loading errors.
 - TailAdmin is visual inspiration only. Do not copy its source, components, icons, screenshots, or other assets into this repository. The project icon in `assets/` is original.
 - Keep credentials and other secrets out of `.env.example`, logs, documentation, screenshots, and commits. The checked-in example contains only non-secret local settings.
 
@@ -36,4 +38,4 @@ To install through an agent-aware skills installer, follow the upstream instruct
 
 - Use root Make targets (`install`, `run`, `run-backend`, `build`, `test-unit`, `test-integration`, `lint`, `format`, and `clean`) rather than inventing parallel root workflows. Frontend targets execute only scripts present in `frontend/package.json`.
 - Agree on API shape, environment variable names, and package scripts with the owning stack before changing shared tooling.
-- Keep changes focused; do not install agent skills or third-party UI templates without explicit project-owner approval and license review.
+- Keep changes focused; add or update frontend tests when changing item editors, confirmation flows, or toast behavior. Do not install agent skills or third-party UI templates without explicit project-owner approval and license review.

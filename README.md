@@ -1,6 +1,6 @@
 # DynamoDB Manager
 
-A local web application for configuring DynamoDB connections, browsing tables and items, filtering records, and editing or deleting items. The frontend is a Vite/React/TypeScript app; the Go API uses chi and the AWS SDK for Go v2.
+A local web application for configuring DynamoDB connections, browsing tables and items, filtering records, and adding, editing, or deleting items. Item creation and editing use a shared modal, with a typed attribute builder and syntax-highlighted DynamoDB JSON. Destructive actions require confirmation, and operation results are reported with toast notifications. The frontend is a Vite/React/TypeScript app; the Go API uses chi and the AWS SDK for Go v2.
 
 ## Architecture and security boundary
 
@@ -91,17 +91,32 @@ sequenceDiagram
         API-->>UI: Next item page
     end
 
-    opt User saves or confirms item deletion
-        UI->>API: updateItem() or deleteItem()
-        API->>HTTP: PUT or DELETE /items with typed key
-        HTTP->>App: PutItem() or DeleteItem()
-        App->>SDK: PutItem or DeleteItem after key validation
-        SDK->>DB: PutItem or DeleteItem
+    opt User adds or edits an item
+        UI->>UI: Open shared item modal; build typed attributes or edit DynamoDB JSON
+        UI->>API: updateItem() with complete typed key and item
+        API->>HTTP: PUT /items
+        HTTP->>App: PutItem()
+        App->>SDK: PutItem after key validation
+        SDK->>DB: PutItem
         DB-->>SDK: Write result
         SDK-->>App: Result
         App-->>HTTP: Success or sanitized error
         HTTP-->>API: 204 or error response
-        API-->>UI: Refresh items and show result
+        API-->>UI: Show success/error toast and refresh items
+    end
+
+    opt User confirms item deletion
+        UI->>UI: Show reusable confirmation dialog
+        UI->>API: deleteItem() with typed key
+        API->>HTTP: DELETE /items
+        HTTP->>App: DeleteItem()
+        App->>SDK: DeleteItem after key validation
+        SDK->>DB: DeleteItem
+        DB-->>SDK: Write result
+        SDK-->>App: Result
+        App-->>HTTP: Success or sanitized error
+        HTTP-->>API: 204 or error response
+        API-->>UI: Show success/error toast and refresh items
     end
 ```
 
@@ -109,7 +124,7 @@ The initial deployment is a trusted, local, single-user tool. The API is unauthe
 
 The browser communicates only with the API; it does not receive AWS credentials or access DynamoDB directly. The backend persists only non-secret connection settings (name, region, optional shared-profile name, and optional endpoint). AWS credentials are resolved using the AWS SDK's normal environment/shared-profile credential chain and are never persisted by the application, returned, or logged. Never put credentials in browser storage, connection payloads, `.env`, or source control.
 
-Browsing uses paginated DynamoDB `Scan`, with a maximum page size of 100 and at most one optional equality filter. A filter does not turn a Scan into an indexed query and may still incur substantial read capacity. The application does not expose arbitrary AWS operations. Item writes require the complete table primary key; deletes require explicit confirmation in the UI.
+Browsing uses paginated DynamoDB `Scan`, with a maximum page size of 100 and at most one optional equality filter. A filter does not turn a Scan into an indexed query and may still incur substantial read capacity. The application does not expose arbitrary AWS operations. Item writes require the complete table primary key; deletes require explicit confirmation in the UI. Add and edit share an item modal; the add flow defaults to a typed attribute builder and also supports syntax-highlighted DynamoDB JSON.
 
 The TailAdmin free dashboard is used only as visual inspiration. No template code or assets are copied. The application icon in `assets/dynamodb-manager.svg` is original.
 
