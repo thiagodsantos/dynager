@@ -1,4 +1,4 @@
-package app
+package usecase
 
 import "github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
 

@@ -12,8 +12,8 @@ import (
 
 	"github.com/aws/smithy-go"
 	"github.com/go-chi/chi/v5"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/app"
 	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
 )
 
 type connectionRequest struct {
@@ -23,11 +23,11 @@ type connectionRequest struct {
 	Endpoint string `json:"endpoint,omitempty"`
 }
 
-func (r connectionRequest) input() app.ConnectionInput {
-	return app.ConnectionInput{Name: r.Name, Region: r.Region, Profile: r.Profile, Endpoint: r.Endpoint}
+func (r connectionRequest) input() usecase.ConnectionInput {
+	return usecase.ConnectionInput{Name: r.Name, Region: r.Region, Profile: r.Profile, Endpoint: r.Endpoint}
 }
 
-func listConnections(service *app.Service) http.HandlerFunc {
+func listConnections(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		connections, err := service.ListConnections(r.Context())
 		if err != nil {
@@ -38,7 +38,7 @@ func listConnections(service *app.Service) http.HandlerFunc {
 	}
 }
 
-func createConnection(service *app.Service) http.HandlerFunc {
+func createConnection(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request connectionRequest
 		if err := decodeJSON(w, r, &request); err != nil {
@@ -54,7 +54,7 @@ func createConnection(service *app.Service) http.HandlerFunc {
 	}
 }
 
-func testConnection(service *app.Service) http.HandlerFunc {
+func testConnection(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request connectionRequest
 		if err := decodeJSON(w, r, &request); err != nil {
@@ -62,7 +62,7 @@ func testConnection(service *app.Service) http.HandlerFunc {
 			return
 		}
 		if err := service.TestConnection(r.Context(), request.input()); err != nil {
-			var applicationError *app.Error
+			var applicationError *usecase.Error
 			if errors.As(err, &applicationError) {
 				writeError(w, err)
 				return
@@ -74,7 +74,7 @@ func testConnection(service *app.Service) http.HandlerFunc {
 	}
 }
 
-func deleteConnection(service *app.Service) http.HandlerFunc {
+func deleteConnection(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := service.DeleteConnection(r.Context(), chi.URLParam(r, "connectionID")); err != nil {
 			writeError(w, err)
@@ -84,7 +84,7 @@ func deleteConnection(service *app.Service) http.HandlerFunc {
 	}
 }
 
-func listTables(service *app.Service) http.HandlerFunc {
+func listTables(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tables, err := service.ListTables(r.Context(), chi.URLParam(r, "connectionID"))
 		if err != nil {
@@ -99,7 +99,7 @@ func listTables(service *app.Service) http.HandlerFunc {
 	}
 }
 
-func describeTable(service *app.Service) http.HandlerFunc {
+func describeTable(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		description, err := service.DescribeTable(r.Context(), chi.URLParam(r, "connectionID"), chi.URLParam(r, "tableName"))
 		if err != nil {
@@ -148,7 +148,7 @@ func parseFilter(value string) (*dynamo.Filter, error) {
 	return &dynamo.Filter{Attribute: input.Attribute, Operator: dynamo.FilterOperatorEqual, Value: typed["value"]}, nil
 }
 
-func listItems(service *app.Service) http.HandlerFunc {
+func listItems(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
@@ -174,7 +174,7 @@ func listItems(service *app.Service) http.HandlerFunc {
 			writeError(w, err)
 			return
 		}
-		token, err := app.EncodeToken(page.NextKey)
+		token, err := usecase.EncodeToken(page.NextKey)
 		if err != nil {
 			writeErrorResponse(w, http.StatusInternalServerError, "internal_error", "Could not encode pagination token")
 			return
@@ -196,7 +196,7 @@ type deleteItemRequest struct {
 	Key dynamo.Item `json:"key"`
 }
 
-func putItem(service *app.Service) http.HandlerFunc {
+func putItem(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request putItemRequest
 		if err := decodeJSON(w, r, &request); err != nil {
@@ -215,7 +215,7 @@ func putItem(service *app.Service) http.HandlerFunc {
 	}
 }
 
-func deleteItem(service *app.Service) http.HandlerFunc {
+func deleteItem(service *usecase.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request deleteItemRequest
 		if err := decodeJSON(w, r, &request); err != nil {

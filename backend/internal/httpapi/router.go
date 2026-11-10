@@ -8,10 +8,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/app"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
 )
 
-func NewRouter(service *app.Service, allowedOrigins []string, logger *zerolog.Logger) http.Handler {
+func NewRouter(service *usecase.Service, allowedOrigins []string, logger *zerolog.Logger) http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(recoverer(logger))

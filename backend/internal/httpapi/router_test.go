@@ -12,27 +12,27 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/app"
 	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
 )
 
-type testRepository struct{ connections map[string]app.Connection }
+type testRepository struct{ connections map[string]usecase.Connection }
 
-func (r *testRepository) List(context.Context) ([]app.Connection, error) {
-	result := []app.Connection{}
+func (r *testRepository) List(context.Context) ([]usecase.Connection, error) {
+	result := []usecase.Connection{}
 	for _, item := range r.connections {
 		result = append(result, item)
 	}
 	return result, nil
 }
-func (r *testRepository) Get(_ context.Context, id string) (app.Connection, error) {
+func (r *testRepository) Get(_ context.Context, id string) (usecase.Connection, error) {
 	item, ok := r.connections[id]
 	if !ok {
-		return app.Connection{}, &app.Error{Code: app.NotFound, Message: "Connection not found"}
+		return usecase.Connection{}, &usecase.Error{Code: usecase.NotFound, Message: "Connection not found"}
 	}
 	return item, nil
 }
-func (r *testRepository) Create(_ context.Context, item app.Connection) (app.Connection, error) {
+func (r *testRepository) Create(_ context.Context, item usecase.Connection) (usecase.Connection, error) {
 	r.connections[item.ID] = item
 	return item, nil
 }
@@ -64,10 +64,10 @@ func (*testDynamo) DeleteItem(context.Context, dynamo.Connection, string, dynamo
 }
 
 func newTestHandler() (http.Handler, *testDynamo) {
-	repository := &testRepository{connections: map[string]app.Connection{"conn": {ID: "conn", Name: "test", Region: "us-east-1"}}}
+	repository := &testRepository{connections: map[string]usecase.Connection{"conn": {ID: "conn", Name: "test", Region: "us-east-1"}}}
 	client := &testDynamo{}
 	logger := zerolog.New(&strings.Builder{})
-	return NewRouter(app.NewService(repository, client), []string{"http://localhost:5173"}, &logger), client
+	return NewRouter(usecase.NewService(repository, client), []string{"http://localhost:5173"}, &logger), client
 }
 
 func TestHealthDoesNotRequireVersionAndAPIDoes(t *testing.T) {
@@ -106,10 +106,10 @@ func TestCreateConnectionDoesNotReturnCredentialFieldsAndVersionIsAccepted(t *te
 }
 
 func TestTestConnectionFailureIsSanitizedAndNotPersisted(t *testing.T) {
-	repository := &testRepository{connections: map[string]app.Connection{}}
+	repository := &testRepository{connections: map[string]usecase.Connection{}}
 	client := &testDynamo{testErr: errors.New("secret credential value")}
 	logger := zerolog.New(&strings.Builder{})
-	handler := NewRouter(app.NewService(repository, client), nil, &logger)
+	handler := NewRouter(usecase.NewService(repository, client), nil, &logger)
 	request := httptest.NewRequest(http.MethodPost, "/api/connections/test", strings.NewReader(`{"name":"try","region":"us-east-1"}`))
 	request.Header.Set("X-API-Version", "v1")
 	response := httptest.NewRecorder()

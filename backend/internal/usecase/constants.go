@@ -1,4 +1,4 @@
-package app
+package usecase
 
 const (
 	MaxConnectionNameLength = 100
