@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/aws/smithy-go"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/application"
 )
 
 func TestErrorsAreSanitizedAndConsistent(t *testing.T) {
@@ -21,7 +21,7 @@ func TestErrorsAreSanitizedAndConsistent(t *testing.T) {
 		t.Fatalf("error was not sanitized: %s", response.Body.String())
 	}
 	response = httptest.NewRecorder()
-	writeError(response, &usecase.Error{Code: usecase.Upstream, Message: "DynamoDB request failed", Cause: errors.New("endpoint contains private details")})
+	writeError(response, &application.Error{Code: application.Upstream, Message: "DynamoDB request failed", Cause: errors.New("endpoint contains private details")})
 	if response.Code != http.StatusBadGateway || strings.Contains(response.Body.String(), "private details") {
 		t.Fatalf("upstream error was not mapped safely: status=%d body=%s", response.Code, response.Body.String())
 	}

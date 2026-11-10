@@ -10,8 +10,8 @@ import (
 
 	"github.com/aws/smithy-go"
 	"github.com/go-chi/chi/v5"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/application"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
 type connectionRequest struct {
@@ -28,19 +28,19 @@ type filterInput struct {
 }
 
 type putItemRequest struct {
-	Key  dynamo.Item `json:"key"`
-	Item dynamo.Item `json:"item"`
+	Key  domain.Item `json:"key"`
+	Item domain.Item `json:"item"`
 }
 
 type deleteItemRequest struct {
-	Key dynamo.Item `json:"key"`
+	Key domain.Item `json:"key"`
 }
 
-func (r connectionRequest) input() usecase.ConnectionInput {
-	return usecase.ConnectionInput{Name: r.Name, Region: r.Region, Profile: r.Profile, Endpoint: r.Endpoint}
+func (r connectionRequest) input() application.ConnectionInput {
+	return application.ConnectionInput{Name: r.Name, Region: r.Region, Profile: r.Profile, Endpoint: r.Endpoint}
 }
 
-func listConnections(service *usecase.Service) http.HandlerFunc {
+func listConnections(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		connections, err := service.ListConnections(r.Context())
 		if err != nil {
@@ -51,7 +51,7 @@ func listConnections(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func createConnection(service *usecase.Service) http.HandlerFunc {
+func createConnection(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request connectionRequest
 		if err := decodeJSON(w, r, &request); err != nil {
@@ -67,7 +67,7 @@ func createConnection(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func testConnection(service *usecase.Service) http.HandlerFunc {
+func testConnection(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request connectionRequest
 		if err := decodeJSON(w, r, &request); err != nil {
@@ -75,7 +75,7 @@ func testConnection(service *usecase.Service) http.HandlerFunc {
 			return
 		}
 		if err := service.TestConnection(r.Context(), request.input()); err != nil {
-			var applicationError *usecase.Error
+			var applicationError *application.Error
 			if errors.As(err, &applicationError) {
 				writeError(w, err)
 				return
@@ -87,7 +87,7 @@ func testConnection(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func deleteConnection(service *usecase.Service) http.HandlerFunc {
+func deleteConnection(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := service.DeleteConnection(r.Context(), chi.URLParam(r, "connectionID")); err != nil {
 			writeError(w, err)
@@ -97,7 +97,7 @@ func deleteConnection(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func listTables(service *usecase.Service) http.HandlerFunc {
+func listTables(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tables, err := service.ListTables(r.Context(), chi.URLParam(r, "connectionID"))
 		if err != nil {
@@ -112,7 +112,7 @@ func listTables(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func describeTable(service *usecase.Service) http.HandlerFunc {
+func describeTable(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		description, err := service.DescribeTable(r.Context(), chi.URLParam(r, "connectionID"), chi.URLParam(r, "tableName"))
 		if err != nil {
@@ -127,7 +127,7 @@ func describeTable(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func parseFilter(value string) (*dynamo.Filter, error) {
+func parseFilter(value string) (*domain.Filter, error) {
 	if value == "" {
 		return nil, nil
 	}
@@ -137,21 +137,21 @@ func parseFilter(value string) (*dynamo.Filter, error) {
 	if err := decodeSingleJSON(decoder, &input); err != nil {
 		return nil, errInvalidFilterJSON
 	}
-	if input.Attribute == "" || input.Operator != dynamo.FilterOperatorEqual || len(input.Value) == 0 {
+	if input.Attribute == "" || input.Operator != domain.FilterOperatorEqual || len(input.Value) == 0 {
 		return nil, errFilterRequirements
 	}
 	encoded, err := json.Marshal(map[string]json.RawMessage{"value": input.Value})
 	if err != nil {
 		return nil, err
 	}
-	var typed dynamo.Item
+	var typed domain.Item
 	if err := json.Unmarshal(encoded, &typed); err != nil {
 		return nil, err
 	}
-	return &dynamo.Filter{Attribute: input.Attribute, Operator: dynamo.FilterOperatorEqual, Value: typed["value"]}, nil
+	return &domain.Filter{Attribute: input.Attribute, Operator: domain.FilterOperatorEqual, Value: typed["value"]}, nil
 }
 
-func listItems(service *usecase.Service) http.HandlerFunc {
+func listItems(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query, err := url.ParseQuery(r.URL.RawQuery)
 		if err != nil {
@@ -177,7 +177,7 @@ func listItems(service *usecase.Service) http.HandlerFunc {
 			writeError(w, err)
 			return
 		}
-		token, err := usecase.EncodeToken(page.NextKey)
+		token, err := application.EncodeToken(page.NextKey)
 		if err != nil {
 			writeErrorResponse(w, http.StatusInternalServerError, "internal_error", "Could not encode pagination token")
 			return
@@ -190,7 +190,7 @@ func listItems(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func putItem(service *usecase.Service) http.HandlerFunc {
+func putItem(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request putItemRequest
 		if err := decodeJSON(w, r, &request); err != nil {
@@ -209,7 +209,7 @@ func putItem(service *usecase.Service) http.HandlerFunc {
 	}
 }
 
-func deleteItem(service *usecase.Service) http.HandlerFunc {
+func deleteItem(service *application.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request deleteItemRequest
 		if err := decodeJSON(w, r, &request); err != nil {

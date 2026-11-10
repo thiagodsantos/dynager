@@ -1,12 +1,11 @@
-package usecase
+package application
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
 type memoryRepository struct{ connections map[string]Connection }
@@ -40,29 +39,32 @@ func (r *memoryRepository) Delete(_ context.Context, id string) error {
 type fakeDynamo struct {
 	testErr     error
 	testCalls   int
-	lastFilter  *dynamo.Filter
-	lastKey     dynamo.Item
-	lastItem    dynamo.Item
+	lastFilter  *domain.Filter
+	lastKey     domain.Item
+	lastItem    domain.Item
 	deleted     bool
-	description dynamo.TableDescription
+	description domain.TableDescription
 }
 
-func (d *fakeDynamo) Test(context.Context, dynamo.Connection) error { d.testCalls++; return d.testErr }
-func (*fakeDynamo) ListTables(context.Context, dynamo.Connection) ([]string, error) {
+func (d *fakeDynamo) Test(context.Context, domain.ConnectionSettings) error {
+	d.testCalls++
+	return d.testErr
+}
+func (*fakeDynamo) ListTables(context.Context, domain.ConnectionSettings) ([]string, error) {
 	return []string{"records"}, nil
 }
-func (d *fakeDynamo) DescribeTable(context.Context, dynamo.Connection, string) (dynamo.TableDescription, error) {
+func (d *fakeDynamo) DescribeTable(context.Context, domain.ConnectionSettings, string) (domain.TableDescription, error) {
 	return d.description, nil
 }
-func (d *fakeDynamo) Scan(_ context.Context, _ dynamo.Connection, _ string, _ int32, _ dynamo.Item, filter *dynamo.Filter) (dynamo.Page, error) {
+func (d *fakeDynamo) Scan(_ context.Context, _ domain.ConnectionSettings, _ string, _ int32, _ domain.Item, filter *domain.Filter) (domain.Page, error) {
 	d.lastFilter = filter
-	return dynamo.Page{Items: []dynamo.Item{}, Count: 0, ScannedCount: 4}, nil
+	return domain.Page{Items: []domain.Item{}, Count: 0, ScannedCount: 4}, nil
 }
-func (d *fakeDynamo) PutItem(_ context.Context, _ dynamo.Connection, _ string, item dynamo.Item) error {
+func (d *fakeDynamo) PutItem(_ context.Context, _ domain.ConnectionSettings, _ string, item domain.Item) error {
 	d.lastItem = item
 	return nil
 }
-func (d *fakeDynamo) DeleteItem(_ context.Context, _ dynamo.Connection, _ string, key dynamo.Item) error {
+func (d *fakeDynamo) DeleteItem(_ context.Context, _ domain.ConnectionSettings, _ string, key domain.Item) error {
 	d.lastKey = key
 	d.deleted = true
 	return nil
@@ -70,7 +72,7 @@ func (d *fakeDynamo) DeleteItem(_ context.Context, _ dynamo.Connection, _ string
 
 func setupService() (*Service, *memoryRepository, *fakeDynamo) {
 	repository := &memoryRepository{connections: map[string]Connection{"conn": {ID: "conn", Name: "local", Region: "us-east-1"}}}
-	client := &fakeDynamo{description: dynamo.TableDescription{PartitionKey: dynamo.KeyAttribute{Name: "id", Type: "S"}, SortKey: &dynamo.KeyAttribute{Name: "version", Type: "N"}}}
+	client := &fakeDynamo{description: domain.TableDescription{PartitionKey: domain.KeyAttribute{Name: "id", Type: "S"}, SortKey: &domain.KeyAttribute{Name: "version", Type: "N"}}}
 	return NewService(repository, client), repository, client
 }
 
@@ -118,25 +120,25 @@ func TestTestConnectionDoesNotSave(t *testing.T) {
 
 func TestWriteRequiresCompleteMatchingPrimaryKey(t *testing.T) {
 	service, _, client := setupService()
-	key := dynamo.Item{"id": &types.AttributeValueMemberS{Value: "a"}, "version": &types.AttributeValueMemberN{Value: "2"}}
-	item := dynamo.Item{"id": &types.AttributeValueMemberS{Value: "a"}, "version": &types.AttributeValueMemberN{Value: "2"}, "data": &types.AttributeValueMemberS{Value: "value"}}
+	key := domain.Item{"id": domain.StringValue("a"), "version": domain.NumberValue("2")}
+	item := domain.Item{"id": domain.StringValue("a"), "version": domain.NumberValue("2"), "data": domain.StringValue("value")}
 	if err := service.PutItem(context.Background(), "conn", "records", key, item); err != nil {
 		t.Fatal(err)
 	}
 	if client.lastItem == nil {
 		t.Fatal("put was not called")
 	}
-	mismatched := dynamo.Item{"id": &types.AttributeValueMemberS{Value: "b"}, "version": &types.AttributeValueMemberN{Value: "2"}}
+	mismatched := domain.Item{"id": domain.StringValue("b"), "version": domain.NumberValue("2")}
 	if err := service.PutItem(context.Background(), "conn", "records", key, mismatched); err == nil {
 		t.Fatal("expected mismatched item key to fail")
 	}
-	if err := service.DeleteItem(context.Background(), "conn", "records", dynamo.Item{"id": &types.AttributeValueMemberS{Value: "a"}}); err == nil {
+	if err := service.DeleteItem(context.Background(), "conn", "records", domain.Item{"id": domain.StringValue("a")}); err == nil {
 		t.Fatal("expected incomplete key to fail")
 	}
 	if err := service.DeleteItem(context.Background(), "conn", "records", key); err != nil {
 		t.Fatal(err)
 	}
-	if !client.deleted || client.lastKey["version"] == nil {
+	if !client.deleted || client.lastKey["version"].Kind == "" {
 		t.Fatal("delete did not receive complete key")
 	}
 }
@@ -146,14 +148,14 @@ func TestListItemsBoundsAndPaginationToken(t *testing.T) {
 	if _, err := service.ListItems(context.Background(), "conn", "records", 101, "", nil); err == nil {
 		t.Fatal("expected oversized page to fail")
 	}
-	filter := &dynamo.Filter{Attribute: "status", Operator: "eq", Value: &types.AttributeValueMemberS{Value: "ready"}}
+	filter := &domain.Filter{Attribute: "status", Operator: "eq", Value: domain.StringValue("ready")}
 	if _, err := service.ListItems(context.Background(), "conn", "records", 20, "", filter); err != nil {
 		t.Fatal(err)
 	}
 	if client.lastFilter != filter {
 		t.Fatal("filter was not passed to DynamoDB")
 	}
-	key := dynamo.Item{"id": &types.AttributeValueMemberS{Value: "next"}}
+	key := domain.Item{"id": domain.StringValue("next")}
 	token, err := EncodeToken(key)
 	if err != nil {
 		t.Fatal(err)

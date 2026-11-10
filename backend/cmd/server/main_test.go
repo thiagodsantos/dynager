@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/config"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/infrastructure/config"
 )
 
 func TestValidateLoopbackAddress(t *testing.T) {

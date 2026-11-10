@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
 func TestFileRepositoryPersistsOnlyNonSecretConnectionFields(t *testing.T) {
@@ -16,7 +16,7 @@ func TestFileRepositoryPersistsOnlyNonSecretConnectionFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connection := usecase.Connection{ID: "id-1", Name: "local", Region: "us-east-1", Profile: "dev", Endpoint: "http://localhost:8000"}
+	connection := domain.Connection{ID: "id-1", Name: "local", Region: "us-east-1", Profile: "dev", Endpoint: "http://localhost:8000"}
 	if _, err := repository.Create(context.Background(), connection); err != nil {
 		t.Fatal(err)
 	}

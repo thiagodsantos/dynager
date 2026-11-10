@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
 type FileRepository struct {
@@ -18,7 +18,7 @@ type FileRepository struct {
 }
 
 type fileData struct {
-	Connections []usecase.Connection `json:"connections"`
+	Connections []domain.Connection `json:"connections"`
 }
 
 func NewFileRepository(path string) (*FileRepository, error) {
@@ -35,7 +35,7 @@ func NewFileRepository(path string) (*FileRepository, error) {
 	return &FileRepository{path: absolute}, nil
 }
 
-func (r *FileRepository) List(ctx context.Context) ([]usecase.Connection, error) {
+func (r *FileRepository) List(ctx context.Context) ([]domain.Connection, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if err := ctx.Err(); err != nil {
@@ -45,45 +45,45 @@ func (r *FileRepository) List(ctx context.Context) ([]usecase.Connection, error)
 	if err != nil {
 		return nil, err
 	}
-	return append([]usecase.Connection{}, connections...), nil
+	return append([]domain.Connection{}, connections...), nil
 }
 
-func (r *FileRepository) Get(ctx context.Context, id string) (usecase.Connection, error) {
+func (r *FileRepository) Get(ctx context.Context, id string) (domain.Connection, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if err := ctx.Err(); err != nil {
-		return usecase.Connection{}, err
+		return domain.Connection{}, err
 	}
 	connections, err := r.readLocked()
 	if err != nil {
-		return usecase.Connection{}, err
+		return domain.Connection{}, err
 	}
 	for _, connection := range connections {
 		if connection.ID == id {
 			return connection, nil
 		}
 	}
-	return usecase.Connection{}, &usecase.Error{Code: usecase.NotFound, Message: "Connection not found"}
+	return domain.Connection{}, &domain.Error{Code: domain.NotFound, Message: "Connection not found"}
 }
 
-func (r *FileRepository) Create(ctx context.Context, connection usecase.Connection) (usecase.Connection, error) {
+func (r *FileRepository) Create(ctx context.Context, connection domain.Connection) (domain.Connection, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if err := ctx.Err(); err != nil {
-		return usecase.Connection{}, err
+		return domain.Connection{}, err
 	}
 	connections, err := r.readLocked()
 	if err != nil {
-		return usecase.Connection{}, err
+		return domain.Connection{}, err
 	}
 	for _, existing := range connections {
 		if existing.ID == connection.ID {
-			return usecase.Connection{}, &usecase.Error{Code: usecase.Conflict, Message: "Connection already exists"}
+			return domain.Connection{}, &domain.Error{Code: domain.Conflict, Message: "Connection already exists"}
 		}
 	}
 	connections = append(connections, connection)
 	if err := r.writeLocked(connections); err != nil {
-		return usecase.Connection{}, err
+		return domain.Connection{}, err
 	}
 	return connection, nil
 }
@@ -104,13 +104,13 @@ func (r *FileRepository) Delete(ctx context.Context, id string) error {
 			return r.writeLocked(connections)
 		}
 	}
-	return &usecase.Error{Code: usecase.NotFound, Message: "Connection not found"}
+	return &domain.Error{Code: domain.NotFound, Message: "Connection not found"}
 }
 
-func (r *FileRepository) readLocked() ([]usecase.Connection, error) {
+func (r *FileRepository) readLocked() ([]domain.Connection, error) {
 	file, err := os.Open(r.path)
 	if errors.Is(err, os.ErrNotExist) {
-		return []usecase.Connection{}, nil
+		return []domain.Connection{}, nil
 	}
 	if err != nil {
 		return nil, errReadConnectionConfiguration
@@ -128,7 +128,7 @@ func (r *FileRepository) readLocked() ([]usecase.Connection, error) {
 	}
 	seen := make(map[string]struct{}, len(data.Connections))
 	for _, connection := range data.Connections {
-		clean, err := usecase.ValidateConnectionInput(usecase.ConnectionInput{Name: connection.Name, Region: connection.Region, Profile: connection.Profile, Endpoint: connection.Endpoint})
+		clean, err := domain.ValidateConnectionInput(domain.ConnectionInput{Name: connection.Name, Region: connection.Region, Profile: connection.Profile, Endpoint: connection.Endpoint})
 		if connection.ID == "" || err != nil || clean.Name != connection.Name || clean.Region != connection.Region || clean.Profile != connection.Profile || clean.Endpoint != connection.Endpoint {
 			return nil, errInvalidConnectionConfiguration
 		}
@@ -140,7 +140,7 @@ func (r *FileRepository) readLocked() ([]usecase.Connection, error) {
 	return data.Connections, nil
 }
 
-func (r *FileRepository) writeLocked(connections []usecase.Connection) error {
+func (r *FileRepository) writeLocked(connections []domain.Connection) error {
 	content, err := json.MarshalIndent(fileData{Connections: connections}, "", "  ")
 	if err != nil {
 		return errEncodeConnectionConfiguration

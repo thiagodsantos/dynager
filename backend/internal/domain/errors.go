@@ -1,4 +1,4 @@
-package usecase
+package domain
 
 import (
 	"errors"
@@ -13,8 +13,6 @@ type Error struct {
 	Cause   error
 }
 
-var errKeyValueType = errors.New("must be a string, number, or binary value")
-
 const (
 	InvalidArgument ErrorCode = "invalid_argument"
 	NotFound        ErrorCode = "not_found"
@@ -22,6 +20,8 @@ const (
 	Upstream        ErrorCode = "upstream_error"
 	Internal        ErrorCode = "internal"
 )
+
+var errKeyValueType = errors.New("must be a string, number, or binary value")
 
 func (e *Error) Error() string {
 	if e.Cause != nil {
@@ -32,15 +32,12 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error { return e.Cause }
 
-func keyTypeMismatch(attributeType string) error {
-	return fmt.Errorf("must use type %s", attributeType)
-}
-
-func invalid(message string) error  { return &Error{Code: InvalidArgument, Message: message} }
-func notFound(message string) error { return &Error{Code: NotFound, Message: message} }
-func internal(message string, cause error) error {
+func InvalidInput(message string) error  { return &Error{Code: InvalidArgument, Message: message} }
+func NotFoundError(message string) error { return &Error{Code: NotFound, Message: message} }
+func ConflictError(message string) error { return &Error{Code: Conflict, Message: message} }
+func InternalError(message string, cause error) error {
 	return &Error{Code: Internal, Message: message, Cause: cause}
 }
-func upstream(cause error) error {
+func UpstreamError(cause error) error {
 	return &Error{Code: Upstream, Message: "DynamoDB request failed", Cause: cause}
 }

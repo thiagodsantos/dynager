@@ -1,4 +1,4 @@
-package dynamo
+package dynamodb
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
 type testItem struct {
@@ -41,7 +42,7 @@ func TestDynamoDBLocalTableItemFlow(t *testing.T) {
 	}
 	sdkClient := dynamodb.NewFromConfig(cfg, func(options *dynamodb.Options) { options.BaseEndpoint = aws.String(endpoint) })
 	api := NewAWSClient()
-	connection := Connection{Region: "us-east-1", Endpoint: endpoint}
+	connection := domain.ConnectionSettings{Region: "us-east-1", Endpoint: endpoint}
 	table := fmt.Sprintf("manager-it-%d", time.Now().UnixNano())
 	_, err = sdkClient.CreateTable(ctx, &dynamodb.CreateTableInput{
 		TableName: aws.String(table),
@@ -85,7 +86,7 @@ func TestDynamoDBLocalTableItemFlow(t *testing.T) {
 		t.Fatalf("description=%#v err=%v", description, err)
 	}
 	for _, value := range []testItem{{"1", "1", "keep"}, {"2", "2", "drop"}} {
-		item := Item{"id": &types.AttributeValueMemberS{Value: value.id}, "version": &types.AttributeValueMemberN{Value: value.version}, "status": &types.AttributeValueMemberS{Value: value.status}, "count": &types.AttributeValueMemberN{Value: "2"}}
+		item := domain.Item{"id": domain.StringValue(value.id), "version": domain.NumberValue(value.version), "status": domain.StringValue(value.status), "count": domain.NumberValue("2")}
 		if err := api.PutItem(ctx, connection, table, item); err != nil {
 			t.Fatalf("put item %s: %v", value.id, err)
 		}
@@ -94,11 +95,11 @@ func TestDynamoDBLocalTableItemFlow(t *testing.T) {
 	if err != nil || len(page.Items) != 1 || len(page.NextKey) == 0 {
 		t.Fatalf("first scan page=%#v err=%v", page, err)
 	}
-	filtered, err := api.Scan(ctx, connection, table, 10, nil, &Filter{Attribute: "status", Operator: "eq", Value: &types.AttributeValueMemberS{Value: "keep"}})
+	filtered, err := api.Scan(ctx, connection, table, 10, nil, &domain.Filter{Attribute: "status", Operator: "eq", Value: domain.StringValue("keep")})
 	if err != nil || len(filtered.Items) != 1 {
 		t.Fatalf("filtered scan page=%#v err=%v", filtered, err)
 	}
-	key := Item{"id": &types.AttributeValueMemberS{Value: "1"}, "version": &types.AttributeValueMemberN{Value: "1"}}
+	key := domain.Item{"id": domain.StringValue("1"), "version": domain.NumberValue("1")}
 	if err := api.DeleteItem(ctx, connection, table, key); err != nil {
 		t.Fatalf("delete item: %v", err)
 	}

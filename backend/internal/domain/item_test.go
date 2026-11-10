@@ -1,11 +1,9 @@
-package dynamo
+package domain
 
 import (
 	"encoding/json"
 	"strings"
 	"testing"
-
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 func TestTypedAttributeRoundTrip(t *testing.T) {
@@ -14,8 +12,8 @@ func TestTypedAttributeRoundTrip(t *testing.T) {
 	if err := json.Unmarshal([]byte(input), &item); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := item["count"].(*types.AttributeValueMemberN); !ok {
-		t.Fatalf("number type was not preserved: %T", item["count"])
+	if item["count"].Kind != AttributeNumber {
+		t.Fatalf("number type was not preserved: %#v", item["count"])
 	}
 	encoded, err := json.Marshal(item)
 	if err != nil {
@@ -25,8 +23,8 @@ func TestTypedAttributeRoundTrip(t *testing.T) {
 	if err := json.Unmarshal(encoded, &roundTrip); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := roundTrip["tags"].(*types.AttributeValueMemberL); !ok {
-		t.Fatalf("list type was not preserved: %T", roundTrip["tags"])
+	if roundTrip["tags"].Kind != AttributeList {
+		t.Fatalf("list type was not preserved: %#v", roundTrip["tags"])
 	}
 	if !strings.Contains(string(encoded), `"N":"2"`) {
 		t.Fatalf("typed number was lost: %s", encoded)

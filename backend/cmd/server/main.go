@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/config"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/httpapi"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/application"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/infrastructure/config"
+	dynamodb "github.com/thiagosantos/dynamodb-manager/backend/internal/infrastructure/dynamodb"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/infrastructure/httpapi"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 	origins := httpapi.ParseOrigins(config.Env(config.EnvCORSOrigins, config.DefaultCORSOrigins))
-	service := usecase.NewService(repository, dynamo.NewAWSClient())
+	service := application.NewService(repository, dynamodb.NewAWSClient())
 	server := &http.Server{
 		Addr:              address,
 		Handler:           httpapi.NewRouter(service, origins, &logger),

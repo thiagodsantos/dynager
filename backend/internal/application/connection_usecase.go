@@ -1,9 +1,9 @@
-package usecase
+package application
 
 import (
 	"context"
 
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
 func (s *Service) ListConnections(ctx context.Context) ([]Connection, error) {
@@ -11,7 +11,7 @@ func (s *Service) ListConnections(ctx context.Context) ([]Connection, error) {
 }
 
 func (s *Service) CreateConnection(ctx context.Context, input ConnectionInput) (Connection, error) {
-	clean, err := ValidateConnectionInput(input)
+	clean, err := domain.ValidateConnectionInput(input)
 	if err != nil {
 		return Connection{}, err
 	}
@@ -23,11 +23,11 @@ func (s *Service) CreateConnection(ctx context.Context, input ConnectionInput) (
 }
 
 func (s *Service) TestConnection(ctx context.Context, input ConnectionInput) error {
-	clean, err := ValidateConnectionInput(input)
+	clean, err := domain.ValidateConnectionInput(input)
 	if err != nil {
 		return err
 	}
-	return s.dynamo.Test(ctx, dynamo.Connection{Region: clean.Region, Profile: clean.Profile, Endpoint: clean.Endpoint})
+	return s.dynamo.Test(ctx, domain.ConnectionSettings{Region: clean.Region, Profile: clean.Profile, Endpoint: clean.Endpoint})
 }
 
 func (s *Service) DeleteConnection(ctx context.Context, id string) error {
@@ -48,9 +48,9 @@ func (s *Service) getConnection(ctx context.Context, id string) (Connection, err
 	if err := validateConnectionID(id); err != nil {
 		return Connection{}, err
 	}
-	connection, err := s.repository.Get(ctx, id)
-	if err != nil {
-		return Connection{}, err
-	}
-	return connection, nil
+	return s.repository.Get(ctx, id)
+}
+
+func toConnectionSettings(connection Connection) domain.ConnectionSettings {
+	return domain.ConnectionSettings{Region: connection.Region, Profile: connection.Profile, Endpoint: connection.Endpoint}
 }

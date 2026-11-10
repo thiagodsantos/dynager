@@ -2,6 +2,17 @@
 
 The API is a trusted local single-user service. It only listens on a loopback address and uses the AWS SDK for Go v2 default credential chain (including an optional shared-config profile). AWS credentials are never accepted by the API, persisted, returned, or logged.
 
+## Architecture
+
+The backend follows a dependency-inward, hexagonal layout:
+
+- `internal/domain` contains connection rules, domain errors, DynamoDB item/value types, and key validation. It has no dependency on the AWS SDK or HTTP framework.
+- `internal/application` contains use cases and the outbound `Repository` and `Dynamo` ports. It depends on the domain and does not know about storage or transport implementations.
+- `internal/infrastructure` contains adapters: `httpapi` is the inbound HTTP adapter, `config` implements the connection repository and runtime configuration, and `dynamodb` implements the DynamoDB port and maps domain values to the AWS SDK.
+- `cmd/server` wires the adapters to the application service.
+
+Dependencies point inward: infrastructure depends on application/domain contracts, while the domain and application layers do not import infrastructure packages.
+
 ## Run
 
 From `backend/`:
@@ -23,7 +34,6 @@ All `/api` routes require `X-API-Version: v1`. `/health` does not. The frontend 
 ## Verify
 
 ```sh
-gofmt -w cmd/server/*.go internal/*/*.go
 go test ./...
 go vet ./...
 ```
@@ -31,5 +41,5 @@ go vet ./...
 The fast test suite does not need AWS access or Docker. To run the DynamoDB Local integration test, start DynamoDB Local separately and set its loopback URL:
 
 ```sh
-DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 go test ./internal/dynamo -run TestDynamoDBLocalTableItemFlow -count=1
+DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 go test ./internal/infrastructure/dynamodb -run TestDynamoDBLocalTableItemFlow -count=1
 ```

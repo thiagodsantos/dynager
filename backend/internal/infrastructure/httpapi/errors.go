@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/aws/smithy-go"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/application"
 )
 
 type errorEnvelope struct {
@@ -46,16 +46,16 @@ func writeError(w http.ResponseWriter, err error) {
 		}
 		return
 	}
-	var applicationError *usecase.Error
+	var applicationError *application.Error
 	if errors.As(err, &applicationError) {
 		switch applicationError.Code {
-		case usecase.InvalidArgument:
+		case application.InvalidArgument:
 			writeErrorResponse(w, http.StatusBadRequest, string(applicationError.Code), applicationError.Message)
-		case usecase.NotFound:
+		case application.NotFound:
 			writeErrorResponse(w, http.StatusNotFound, string(applicationError.Code), applicationError.Message)
-		case usecase.Conflict:
+		case application.Conflict:
 			writeErrorResponse(w, http.StatusConflict, string(applicationError.Code), applicationError.Message)
-		case usecase.Upstream:
+		case application.Upstream:
 			writeErrorResponse(w, http.StatusBadGateway, string(applicationError.Code), "DynamoDB request failed")
 		default:
 			writeErrorResponse(w, http.StatusInternalServerError, "internal_error", "Internal server error")

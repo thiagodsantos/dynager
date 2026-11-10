@@ -10,29 +10,30 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/usecase"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/application"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
-type testRepository struct{ connections map[string]usecase.Connection }
+type testRepository struct {
+	connections map[string]application.Connection
+}
 
-func (r *testRepository) List(context.Context) ([]usecase.Connection, error) {
-	result := []usecase.Connection{}
+func (r *testRepository) List(context.Context) ([]application.Connection, error) {
+	result := []application.Connection{}
 	for _, item := range r.connections {
 		result = append(result, item)
 	}
 	return result, nil
 }
-func (r *testRepository) Get(_ context.Context, id string) (usecase.Connection, error) {
+func (r *testRepository) Get(_ context.Context, id string) (application.Connection, error) {
 	item, ok := r.connections[id]
 	if !ok {
-		return usecase.Connection{}, &usecase.Error{Code: usecase.NotFound, Message: "Connection not found"}
+		return application.Connection{}, &application.Error{Code: application.NotFound, Message: "Connection not found"}
 	}
 	return item, nil
 }
-func (r *testRepository) Create(_ context.Context, item usecase.Connection) (usecase.Connection, error) {
+func (r *testRepository) Create(_ context.Context, item application.Connection) (application.Connection, error) {
 	r.connections[item.ID] = item
 	return item, nil
 }
@@ -43,31 +44,36 @@ func (r *testRepository) Delete(_ context.Context, id string) error {
 
 type testDynamo struct {
 	tests   int
-	filter  *dynamo.Filter
+	filter  *domain.Filter
 	testErr error
 }
 
-func (d *testDynamo) Test(context.Context, dynamo.Connection) error { d.tests++; return d.testErr }
-func (*testDynamo) ListTables(context.Context, dynamo.Connection) ([]string, error) {
+func (d *testDynamo) Test(context.Context, domain.ConnectionSettings) error {
+	d.tests++
+	return d.testErr
+}
+func (*testDynamo) ListTables(context.Context, domain.ConnectionSettings) ([]string, error) {
 	return []string{"records"}, nil
 }
-func (*testDynamo) DescribeTable(context.Context, dynamo.Connection, string) (dynamo.TableDescription, error) {
-	return dynamo.TableDescription{PartitionKey: dynamo.KeyAttribute{Name: "id", Type: "S"}}, nil
+func (*testDynamo) DescribeTable(context.Context, domain.ConnectionSettings, string) (domain.TableDescription, error) {
+	return domain.TableDescription{PartitionKey: domain.KeyAttribute{Name: "id", Type: "S"}}, nil
 }
-func (d *testDynamo) Scan(_ context.Context, _ dynamo.Connection, _ string, _ int32, _ dynamo.Item, filter *dynamo.Filter) (dynamo.Page, error) {
+func (d *testDynamo) Scan(_ context.Context, _ domain.ConnectionSettings, _ string, _ int32, _ domain.Item, filter *domain.Filter) (domain.Page, error) {
 	d.filter = filter
-	return dynamo.Page{Items: []dynamo.Item{}, Count: 0, ScannedCount: 2}, nil
+	return domain.Page{Items: []domain.Item{}, Count: 0, ScannedCount: 2}, nil
 }
-func (*testDynamo) PutItem(context.Context, dynamo.Connection, string, dynamo.Item) error { return nil }
-func (*testDynamo) DeleteItem(context.Context, dynamo.Connection, string, dynamo.Item) error {
+func (*testDynamo) PutItem(context.Context, domain.ConnectionSettings, string, domain.Item) error {
+	return nil
+}
+func (*testDynamo) DeleteItem(context.Context, domain.ConnectionSettings, string, domain.Item) error {
 	return nil
 }
 
 func newTestHandler() (http.Handler, *testDynamo) {
-	repository := &testRepository{connections: map[string]usecase.Connection{"conn": {ID: "conn", Name: "test", Region: "us-east-1"}}}
+	repository := &testRepository{connections: map[string]application.Connection{"conn": {ID: "conn", Name: "test", Region: "us-east-1"}}}
 	client := &testDynamo{}
 	logger := zerolog.New(&strings.Builder{})
-	return NewRouter(usecase.NewService(repository, client), []string{"http://localhost:5173"}, &logger), client
+	return NewRouter(application.NewService(repository, client), []string{"http://localhost:5173"}, &logger), client
 }
 
 func TestHealthDoesNotRequireVersionAndAPIDoes(t *testing.T) {
@@ -106,10 +112,10 @@ func TestCreateConnectionDoesNotReturnCredentialFieldsAndVersionIsAccepted(t *te
 }
 
 func TestTestConnectionFailureIsSanitizedAndNotPersisted(t *testing.T) {
-	repository := &testRepository{connections: map[string]usecase.Connection{}}
+	repository := &testRepository{connections: map[string]application.Connection{}}
 	client := &testDynamo{testErr: errors.New("secret credential value")}
 	logger := zerolog.New(&strings.Builder{})
-	handler := NewRouter(usecase.NewService(repository, client), nil, &logger)
+	handler := NewRouter(application.NewService(repository, client), nil, &logger)
 	request := httptest.NewRequest(http.MethodPost, "/api/connections/test", strings.NewReader(`{"name":"try","region":"us-east-1"}`))
 	request.Header.Set("X-API-Version", "v1")
 	response := httptest.NewRecorder()
@@ -161,8 +167,8 @@ func TestFilterUsesTypedValueAndRejectsUnsupportedOperator(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
-	if _, ok := client.filter.Value.(*types.AttributeValueMemberS); !ok {
-		t.Fatalf("filter value was not typed: %T", client.filter.Value)
+	if client.filter.Value.Kind != domain.AttributeString {
+		t.Fatalf("filter value was not typed: %#v", client.filter.Value)
 	}
 	request = httptest.NewRequest(http.MethodGet, `/api/connections/conn/tables/records/items?filter=%7B%22attribute%22%3A%22status%22%2C%22operator%22%3A%22contains%22%2C%22value%22%3A%7B%22S%22%3A%22ready%22%7D%7D`, nil)
 	request.Header.Set("X-API-Version", "v1")

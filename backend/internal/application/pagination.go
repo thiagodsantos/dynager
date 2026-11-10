@@ -1,13 +1,13 @@
-package usecase
+package application
 
 import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/thiagosantos/dynamodb-manager/backend/internal/dynamo"
+	"github.com/thiagosantos/dynamodb-manager/backend/internal/domain"
 )
 
-func decodeToken(token string) (dynamo.Item, error) {
+func decodeToken(token string) (domain.Item, error) {
 	if token == "" {
 		return nil, nil
 	}
@@ -18,14 +18,14 @@ func decodeToken(token string) (dynamo.Item, error) {
 	if err != nil {
 		return nil, invalid("Pagination token is invalid")
 	}
-	var key dynamo.Item
+	var key domain.Item
 	if err := json.Unmarshal(encoded, &key); err != nil || len(key) == 0 {
 		return nil, invalid("Pagination token is invalid")
 	}
 	return key, nil
 }
 
-func EncodeToken(key dynamo.Item) (string, error) {
+func EncodeToken(key domain.Item) (string, error) {
 	if len(key) == 0 {
 		return "", nil
 	}
