@@ -139,7 +139,7 @@ The TailAdmin free dashboard is used only as visual inspiration. No template cod
 
 ## Configuration
 
-Copy `.env.example` to `.env` to customize the DynamoDB Local host ports used by Compose. The test service uses `DYNAMODB_LOCAL_PORT` (default `8000`); the seeded dev service uses `DYNAMODB_DEV_PORT` (default `8001`). No secrets belong in this file. The backend stores connection metadata in `${user-config-dir}/dynamodb-manager/connections.json` with private file permissions; set `DYNAMODB_MANAGER_CONFIG` to override the location.
+Copy `.env.example` to `.env` to customize the DynamoDB Local host ports used by Compose. The test service uses `DYNAMODB_LOCAL_PORT` (default `8000`); the seeded dev service uses `DYNAMODB_DEV_PORT` (default `8001`). No secrets belong in this file. The backend stores connection metadata in `${user-config-dir}/dynamodb-manager/connections.json` with private file permissions; set `DYNAGER_CONFIG` to override the location.
 
 Configure AWS access for the **backend process** using the standard SDK credential chain (for example `AWS_PROFILE` and `AWS_REGION`, or supported AWS environment credentials). Connection profile and region are settings, not credentials. Backend options and API details are in [`backend/README.md`](backend/README.md).
 
@@ -155,7 +155,7 @@ make run-backend     # API at 127.0.0.1:8080
 make build
 ```
 
-Run `make run` and `make run-backend` in separate terminals. The Vite development proxy forwards `/api` to the Go API. If port 8080 is occupied, choose another loopback port for both processes, for example `DYNAMODB_MANAGER_ADDR=127.0.0.1:8081 make run-backend` and `DYNAMODB_MANAGER_API_TARGET=http://localhost:8081 make run`. For AWS access, set the credential-chain environment in the backend terminal before starting it. Frontend configuration and scripts are documented in [`frontend/README.md`](frontend/README.md).
+Run `make run` and `make run-backend` in separate terminals. The Vite development proxy forwards `/api` to the Go API. If port 8080 is occupied, choose another loopback port for both processes, for example `DYNAGER_ADDR=127.0.0.1:8081 make run-backend` and `DYNAGER_API_TARGET=http://localhost:8081 make run`. For AWS access, set the credential-chain environment in the backend terminal before starting it. Frontend configuration and scripts are documented in [`frontend/README.md`](frontend/README.md).
 
 All `/api` requests require `X-API-Version: v1`; `/health` is unversioned. The backend accepts configured Vite origins and does not enable credentialed CORS.
 

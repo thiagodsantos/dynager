@@ -2,7 +2,7 @@ import { defineConfig, type UserConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 
-const apiTarget = process.env.DYNAMODB_MANAGER_API_TARGET ?? 'http://localhost:8080'
+const apiTarget = process.env.DYNAGER_API_TARGET ?? 'http://localhost:8080'
 
 const config = {
   plugins: [react()],

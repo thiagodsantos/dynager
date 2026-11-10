@@ -21,13 +21,13 @@ From `backend/`:
 go run ./cmd/server
 ```
 
-The default listener is `127.0.0.1:8080`. Configuration is stored as non-secret connection metadata in `${user-config-dir}/dynamodb-manager/connections.json` with private file permissions. Override the path with `DYNAMODB_MANAGER_CONFIG`.
+The default listener is `127.0.0.1:8080`. Configuration is stored as non-secret connection metadata in `${user-config-dir}/dynamodb-manager/connections.json` with private file permissions. Override the path with `DYNAGER_CONFIG`.
 
 Environment options:
 
-- `DYNAMODB_MANAGER_ADDR` — listener address; must be `localhost` or a loopback IP (default `127.0.0.1:8080`).
-- `DYNAMODB_MANAGER_CONFIG` — connection metadata file path.
-- `DYNAMODB_MANAGER_CORS_ORIGINS` — comma-separated exact browser origins (default `http://localhost:5173,http://127.0.0.1:5173`). Wildcard origins are ignored.
+- `DYNAGER_ADDR` — listener address; must be `localhost` or a loopback IP (default `127.0.0.1:8080`).
+- `DYNAGER_CONFIG` — connection metadata file path.
+- `DYNAGER_CORS_ORIGINS` — comma-separated exact browser origins (default `http://localhost:5173,http://127.0.0.1:5173`). Wildcard origins are ignored.
 
 All `/api` routes require `X-API-Version: v1`. `/health` does not. The frontend can configure a region, optional AWS shared profile, and optional HTTP(S) DynamoDB endpoint override; endpoint URLs containing credentials, paths, queries, or fragments are rejected.
 

@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Vite proxies `/api` to `http://localhost:8080` by default. Set `DYNAMODB_MANAGER_API_TARGET` to proxy to a different backend address (for example, `http://localhost:8081`). Set `VITE_API_BASE_URL` only when the API is hosted at a different origin. All API requests include `X-API-Version: v1`.
+Vite proxies `/api` to `http://localhost:8080` by default. Set `DYNAGER_API_TARGET` to proxy to a different backend address (for example, `http://localhost:8081`). Set `VITE_API_BASE_URL` only when the API is hosted at a different origin. All API requests include `X-API-Version: v1`.
 
 ## Checks
 
