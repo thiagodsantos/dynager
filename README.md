@@ -4,9 +4,105 @@ A local web application for configuring DynamoDB connections, browsing tables an
 
 ## Architecture and security boundary
 
-```text
-Browser (React/Vite) -> Go REST API (127.0.0.1) -> AWS SDK -> DynamoDB
-                                               \-> DynamoDB Local (integration tests)
+The diagram shows the runtime layers and the two backend dependencies: connection metadata is stored locally, while table operations go through the AWS SDK to the configured DynamoDB endpoint.
+
+```mermaid
+flowchart LR
+    subgraph Browser[Browser]
+        UI[React routes and pages]
+        Client[Typed API client]
+        UI --> Client
+    end
+
+    subgraph Backend[Go API on loopback]
+        Middleware[HTTP middleware and versioned router]
+        Handlers[HTTP handlers]
+        Service[Application service]
+        ConfigPort[Connection repository]
+        DynamoPort[DynamoDB interface]
+        Middleware --> Handlers --> Service
+        Service --> ConfigPort
+        Service --> DynamoPort
+    end
+
+    ConfigFile[Private connection settings file]
+    Adapter[AWS SDK adapter]
+    Credentials[AWS SDK credential chain]
+    Database[(DynamoDB or DynamoDB Local)]
+
+    Client -->|HTTP REST: /api, X-API-Version: v1| Middleware
+    ConfigPort --> ConfigFile
+    DynamoPort --> Adapter
+    Adapter -->|signed DynamoDB requests| Database
+    Credentials --> Adapter
+```
+
+The sequence below illustrates the browser-to-backend path for browsing and editing records. Pagination tokens carry the DynamoDB continuation key back to the API; item writes are validated against the table's complete primary key before the SDK call.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as React page
+    participant API as Typed API client
+    participant HTTP as Go HTTP handlers
+    participant App as Application service
+    participant Repo as Connection repository
+    participant SDK as AWS SDK adapter
+    participant DB as DynamoDB endpoint
+
+    User->>UI: Open connection's tables
+    UI->>API: listConnections() and listTables(connectionId)
+    API->>HTTP: GET /api/connections and GET /api/connections/{id}/tables
+    HTTP->>App: ListConnections() and ListTables(id)
+    App->>Repo: Load saved connection metadata
+    Repo-->>App: Connection settings (no credentials)
+    App->>SDK: ListTables(connection settings)
+    SDK->>DB: ListTables
+    DB-->>SDK: Table names
+    SDK-->>App: Table names
+    App-->>HTTP: Connection and table data
+    HTTP-->>API: JSON responses
+    API-->>UI: Connection and table data
+
+    User->>UI: Select a table
+    UI->>API: getTable(id, tableName), then listItems(...)
+    API->>HTTP: GET table metadata, then GET items?limit=25
+    HTTP->>App: DescribeTable() and ListItems()
+    App->>Repo: Load saved connection metadata
+    Repo-->>App: Region, optional profile and endpoint
+    App->>SDK: DescribeTable() and paginated Scan()
+    SDK->>DB: DescribeTable and Scan
+    DB-->>SDK: Key schema, items and continuation key
+    SDK-->>App: Table description and item page
+    App-->>HTTP: Typed DynamoDB data
+    HTTP-->>API: JSON and optional nextToken
+    API-->>UI: Table schema and item page
+
+    opt User requests next page
+        UI->>API: listItems(..., nextToken)
+        API->>HTTP: GET items?nextToken=...
+        HTTP->>App: Decode token and ListItems()
+        App->>SDK: Scan from continuation key
+        SDK->>DB: Scan
+        DB-->>SDK: Next item page
+        SDK-->>App: Page and continuation key
+        App-->>HTTP: Page and encoded nextToken
+        HTTP-->>API: JSON response
+        API-->>UI: Next item page
+    end
+
+    opt User saves or confirms item deletion
+        UI->>API: updateItem() or deleteItem()
+        API->>HTTP: PUT or DELETE /items with typed key
+        HTTP->>App: PutItem() or DeleteItem()
+        App->>SDK: PutItem or DeleteItem after key validation
+        SDK->>DB: PutItem or DeleteItem
+        DB-->>SDK: Write result
+        SDK-->>App: Result
+        App-->>HTTP: Success or sanitized error
+        HTTP-->>API: 204 or error response
+        API-->>UI: Refresh items and show result
+    end
 ```
 
 The initial deployment is a trusted, local, single-user tool. The API is unauthenticated and must not be exposed to a LAN, public interface, reverse proxy, or other untrusted network. The backend binds to loopback by default. Add authentication and access controls before changing that boundary.
