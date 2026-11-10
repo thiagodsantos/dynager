@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'react-toastify'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Cloud, Database, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -6,6 +7,7 @@ import type { Connection } from '@/types/api'
 import { Button } from '@/components/atoms/Button'
 import { StatusBadge } from '@/components/atoms/StatusBadge'
 import { ErrorState, EmptyState, LoadingState } from '@/components/molecules/Feedback'
+import { ConfirmationDialog } from '@/components/organisms/ConfirmationDialog'
 import { PageHeader } from '@/components/templates/PageHeader'
 
 export function ConnectionsPage() {
@@ -13,6 +15,7 @@ export function ConnectionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [removing, setRemoving] = useState<string | null>(null)
+  const [connectionToRemove, setConnectionToRemove] = useState<Connection | null>(null)
   const navigate = useNavigate()
 
   const load = useCallback(async () => {
@@ -26,13 +29,14 @@ export function ConnectionsPage() {
   useEffect(() => { void load() }, [load])
 
   async function remove(connection: Connection) {
-    if (!window.confirm(`Remove “${connection.name}” from this workspace?`)) return
     setRemoving(connection.id)
     try {
       await api.deleteConnection(connection.id)
       setConnections((current) => current.filter((entry) => entry.id !== connection.id))
+      setConnectionToRemove(null)
+      toast.success(`Connection “${connection.name}” removed.`)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not remove connection.')
+      toast.error(reason instanceof Error ? reason.message : 'Could not remove connection.')
     } finally { setRemoving(null) }
   }
 
@@ -47,11 +51,12 @@ export function ConnectionsPage() {
     {error && <ErrorState message={error} onRetry={() => void load()} />}
     {loading ? <LoadingState label="Loading connections…" /> : connections.length === 0 ? <EmptyState title="No connections yet" description="Add a region and let the backend use your AWS credential chain or named profile." action={<Button variant="primary" onClick={() => navigate('/connections/new')}><Plus size={16} />Create a connection</Button>} /> : <div className="connection-grid">
       {connections.map((connection) => <article className="connection-card" key={connection.id}>
-        <div className="connection-card-top"><span className="connection-icon"><Database size={19} /></span><StatusBadge tone="success">Configured</StatusBadge><button className="icon-button danger-icon" aria-label={`Remove ${connection.name}`} disabled={removing === connection.id} onClick={() => void remove(connection)}><Trash2 size={16} /></button></div>
+        <div className="connection-card-top"><span className="connection-icon"><Database size={19} /></span><StatusBadge tone="success">Configured</StatusBadge><button className="icon-button danger-icon" aria-label={`Remove ${connection.name}`} disabled={removing === connection.id} onClick={() => setConnectionToRemove(connection)}><Trash2 size={16} /></button></div>
         <h3>{connection.name}</h3><p className="connection-region"><span className="region-mark">⌖</span>{connection.region}</p>
         <div className="connection-meta"><span>{connection.profile ? `Profile · ${connection.profile}` : 'AWS default credential chain'}</span>{connection.endpointConfigured && <span className="endpoint-tag">Custom endpoint configured</span>}</div>
         <Link className="connection-link" to={`/connections/${encodeURIComponent(connection.id)}/tables`}>Explore tables<ArrowRight size={16} /></Link>
       </article>)}
     </div>}
+    {connectionToRemove && <ConfirmationDialog title="Remove connection?" description={`Remove “${connectionToRemove.name}” from this workspace? This only removes the saved connection settings.`} confirmLabel="Remove connection" busy={removing === connectionToRemove.id} onCancel={() => setConnectionToRemove(null)} onConfirm={() => void remove(connectionToRemove)} />}
   </>
 }

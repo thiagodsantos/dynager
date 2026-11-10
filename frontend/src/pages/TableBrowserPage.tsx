@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowDownWideNarrow, ArrowLeft, ArrowRight, ChevronDown, Database, Filter, KeyRound, Pencil, RefreshCw, Search, Trash2, X } from 'lucide-react'
+import { toast } from 'react-toastify'
+import { ArrowDownWideNarrow, ArrowLeft, ArrowRight, ChevronDown, Database, Filter, KeyRound, Pencil, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { getAttributeKind, getAttributePreview } from '@/lib/format'
 import { getItemKey, isAttributeValue, type AttributeValue, type Item, type ItemPage, type TableDescription } from '@/types/dynamodb'
@@ -9,6 +10,8 @@ import { Button } from '@/components/atoms/Button'
 import { Field, TextAreaField } from '@/components/atoms/Field'
 import { StatusBadge } from '@/components/atoms/StatusBadge'
 import { EmptyState, ErrorState, LoadingState } from '@/components/molecules/Feedback'
+import { ConfirmationDialog } from '@/components/organisms/ConfirmationDialog'
+import { AddItemDialog } from '@/components/organisms/AddItemDialog'
 import { ItemEditorDialog } from '@/components/organisms/ItemEditorDialog'
 import { PageHeader } from '@/components/templates/PageHeader'
 
@@ -35,9 +38,11 @@ export function TableBrowserPage() {
   const [filterValue, setFilterValue] = useState('')
   const [activeFilter, setActiveFilter] = useState<ItemFilter | undefined>()
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  const [addItemOpen, setAddItemOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [mutationMessage, setMutationMessage] = useState('')
+
   const [filterError, setFilterError] = useState('')
 
 
@@ -75,7 +80,6 @@ export function TableBrowserPage() {
     setMetaError('')
     setMetadata(null)
     setPage(null)
-    setMutationMessage('')
     api.getTable(connectionId, tableName).then((data) => { if (current) setMetadata(data) })
       .catch((reason: unknown) => { if (current) setMetaError(reason instanceof Error ? reason.message : 'Could not load table metadata.') })
       .finally(() => { if (current) setMetaLoading(false) })
@@ -104,7 +108,6 @@ export function TableBrowserPage() {
     if (!isAttributeValue(value)) { setFilterError('Filter value must be a single valid DynamoDB attribute value.'); return }
     setTokens([undefined])
     setPageIndex(0)
-    setMutationMessage('')
     setActiveFilter({ attribute: filterName.trim(), operator: 'eq', value })
   }
 
@@ -129,32 +132,48 @@ export function TableBrowserPage() {
   async function saveItem(key: Item, item: Item): Promise<string | null> {
     if (!tableName) return 'The selected table is no longer available.'
     setSaving(true)
-    setMutationMessage('')
     try {
       await api.updateItem(connectionId, tableName, key, item)
       setSelectedItem(null)
-      setMutationMessage('Item updated successfully.')
+      toast.success('Item updated successfully.')
       await loadItems()
       return null
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'Could not update item.'
-      setItemsError(message)
-      return message
+      return reason instanceof Error ? reason.message : 'Could not update item.'
+    } finally { setSaving(false) }
+  }
+
+  async function createItem(item: Item): Promise<string | null> {
+    if (!tableName || !metadata) return 'The selected table is no longer available.'
+    const key = getItemKey(item, metadata)
+    if (!key) return 'The item must include the complete primary key.'
+    setSaving(true)
+    setItemsError('')
+    try {
+      await api.updateItem(connectionId, tableName, key, item)
+      setAddItemOpen(false)
+      toast.success('Item added successfully.')
+      const isAlreadyFirstPage = pageIndex === 0 && !tokens[0]
+      setTokens([undefined])
+      setPageIndex(0)
+      if (isAlreadyFirstPage) await loadItems()
+      return null
+    } catch (reason) {
+      return reason instanceof Error ? reason.message : 'Could not add item.'
     } finally { setSaving(false) }
   }
 
   async function removeItem(item: Item) {
     if (!tableName || !metadata) return
     const key = getItemKey(item, metadata)
-    if (!key) { setItemsError('This item is missing part of its primary key and cannot be deleted.'); return }
-    if (!window.confirm(`Permanently delete this item from ${tableName}? This action cannot be undone.`)) return
+    if (!key) { toast.error('This item is missing part of its primary key and cannot be deleted.'); setDeleteTarget(null); return }
     setDeleting(true)
-    setMutationMessage('')
     try {
       await api.deleteItem(connectionId, tableName, key)
-      setMutationMessage('Item deleted successfully.')
+      setDeleteTarget(null)
+      toast.success('Item deleted successfully.')
       await loadItems()
-    } catch (reason) { setItemsError(reason instanceof Error ? reason.message : 'Could not delete item.') }
+    } catch (reason) { toast.error(reason instanceof Error ? reason.message : 'Could not delete item.') }
     finally { setDeleting(false) }
   }
 
@@ -164,7 +183,7 @@ export function TableBrowserPage() {
 
   return <>
     <div className="back-link-row"><Link className="back-link" to="/connections"><ArrowLeft size={15} />Connections</Link><span>/</span><span>{connectionLabel}</span></div>
-    <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<Button onClick={() => { if (tableName) void loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>} />
+    <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<><Button onClick={() => { if (tableName) void loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>{tableName && metadata && <Button variant="primary" onClick={() => setAddItemOpen(true)}><Plus size={15} />Add item</Button>}</>} />
     {tablesError && <ErrorState message={tablesError} onRetry={() => navigate(pathToTables)} />}
     {tablesLoading ? <LoadingState label="Loading tables…" /> : <div className="browser-layout">
       <aside className="table-rail panel">
@@ -191,10 +210,10 @@ export function TableBrowserPage() {
             </div>
             <section className="panel items-panel">
               <div className="items-toolbar"><div><div className="items-title"><h2>Items</h2>{page && <StatusBadge>{page.count} returned</StatusBadge>}</div><p>{page ? `${page.scannedCount.toLocaleString()} items scanned · page ${pageIndex + 1}` : 'Browse and edit typed DynamoDB records.'}</p></div><span className="page-size"><span className="page-size-dot" />25 per page</span></div>
-              {mutationMessage && <div className="success-strip">{mutationMessage}</div>}
+
               {itemsError && <ErrorState message={itemsError} onRetry={() => void loadItems()} />}
               {pageLoading ? <LoadingState label="Loading items…" /> : page && page.items.length === 0 ? <EmptyState title={activeFilter ? 'No items match this filter' : 'This table is empty'} description={activeFilter ? 'Try another typed value or clear the filter to see all scanned items.' : 'There are no records in this table yet.'} action={activeFilter ? <Button onClick={clearFilter}>Clear filter</Button> : undefined} /> : page && <>
-                <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={`${pageIndex}-${index}`}><td className="row-number">{index + 1 + pageIndex * PAGE_SIZE}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => void removeItem(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
+                <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={`${pageIndex}-${index}`}><td className="row-number">{index + 1 + pageIndex * PAGE_SIZE}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => setDeleteTarget(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
                 <div className="pagination"><span>Showing <strong>{page.items.length ? pageIndex * PAGE_SIZE + 1 : 0}–{pageIndex * PAGE_SIZE + page.items.length}</strong> of scanned records</span><div><Button size="sm" onClick={goPrevious} disabled={pageIndex === 0 || pageLoading}><ArrowLeft size={14} />Previous</Button><span className="page-number">{pageIndex + 1}</span><Button size="sm" onClick={goNext} disabled={!page.nextToken || pageLoading}>Next<ArrowRight size={14} /></Button></div></div>
               </>}
             </section>
@@ -202,6 +221,8 @@ export function TableBrowserPage() {
         </>}
       </section>
     </div>}
+    {deleteTarget && tableName && <ConfirmationDialog title="Delete item?" description={`Permanently delete this item from ${tableName}? This action cannot be undone.`} confirmLabel="Delete item" busy={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => void removeItem(deleteTarget)} />}
+    {addItemOpen && metadata && <AddItemDialog metadata={metadata} busy={saving} onClose={() => setAddItemOpen(false)} onCreate={createItem} />}
     {selectedItem && metadata && <ItemEditorDialog item={selectedItem} metadata={metadata} busy={saving} onClose={() => setSelectedItem(null)} onSave={saveItem} />}
   </>
 }

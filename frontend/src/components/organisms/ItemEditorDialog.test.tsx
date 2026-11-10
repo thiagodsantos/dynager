@@ -11,6 +11,19 @@ const metadata: TableDescription = {
 const item: Item = { pk: { S: 'USER#1' }, sk: { N: '17' }, active: { BOOL: true } }
 
 describe('item editor', () => {
+  it('highlights JSON keys, strings, numbers, and literals while retaining an editable textarea', () => {
+    render(<ItemEditorDialog item={item} metadata={metadata} busy={false} onClose={vi.fn()} onSave={vi.fn()} />)
+
+    const editor = screen.getByLabelText('DynamoDB JSON')
+    expect(editor).toHaveValue(JSON.stringify(item, null, 2))
+    fireEvent.change(editor, { target: { value: JSON.stringify({ pk: 'USER#1', retries: 17, active: true }, null, 2) } })
+
+    expect(document.querySelector('.json-token-key')).toHaveTextContent('pk')
+    expect(document.querySelector('.json-token-string')).toHaveTextContent('USER#1')
+    expect(document.querySelector('.json-token-number')).toHaveTextContent('17')
+    expect(document.querySelector('.json-token-literal')).toHaveTextContent('true')
+  })
+
   it('preserves DynamoDB types and refuses primary-key changes', async () => {
     const onSave = vi.fn().mockResolvedValue(null)
     render(<ItemEditorDialog item={item} metadata={metadata} busy={false} onClose={vi.fn()} onSave={onSave} />)

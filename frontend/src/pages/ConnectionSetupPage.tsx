@@ -1,18 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check, Cloud, ShieldCheck, Wifi } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { api } from '@/lib/api'
-import type { ConnectionInput, TestConnectionResult } from '@/types/api'
+import type { ConnectionInput } from '@/types/api'
 import { Button } from '@/components/atoms/Button'
 import { Field } from '@/components/atoms/Field'
-import { ErrorState, InlineNotice } from '@/components/molecules/Feedback'
+import { ErrorState } from '@/components/molecules/Feedback'
 import { PageHeader } from '@/components/templates/PageHeader'
 
 const initialForm: ConnectionInput = { name: '', region: '', profile: '', endpoint: '' }
 
 export function ConnectionSetupPage() {
   const [form, setForm] = useState(initialForm)
-  const [testResult, setTestResult] = useState<TestConnectionResult | null>(null)
   const [error, setError] = useState('')
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -20,7 +20,6 @@ export function ConnectionSetupPage() {
 
   function update(field: keyof ConnectionInput, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
-    setTestResult(null)
     setError('')
   }
 
@@ -42,12 +41,14 @@ export function ConnectionSetupPage() {
 
   async function testConnection() {
     setError('')
-    setTestResult(null)
     let input: ConnectionInput
     try { input = validate() } catch (reason) { setError(reason instanceof Error ? reason.message : 'Check the connection details.'); return }
     setTesting(true)
-    try { setTestResult(await api.testConnection(input)) }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Connection test failed.') }
+    try {
+      const result = await api.testConnection(input)
+      if (result.success) toast.success(result.message)
+      else toast.error(result.message)
+    } catch (reason) { toast.error(reason instanceof Error ? reason.message : 'Connection test failed.') }
     finally { setTesting(false) }
   }
 
@@ -59,8 +60,9 @@ export function ConnectionSetupPage() {
     setSaving(true)
     try {
       const connection = await api.createConnection(input)
+      toast.success('Connection saved successfully.')
       navigate(`/connections/${encodeURIComponent(connection.id)}/tables`)
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not save connection.') }
+    } catch (reason) { toast.error(reason instanceof Error ? reason.message : 'Could not save connection.') }
     finally { setSaving(false) }
   }
 
@@ -77,7 +79,7 @@ export function ConnectionSetupPage() {
         </div>
         <div className="security-callout"><ShieldCheck size={19} /><div><strong>Your AWS credentials are never entered here.</strong><p>dynager uses the backend’s AWS SDK credential chain. Access keys and session tokens are never sent to or stored by this browser.</p></div></div>
         {error && <ErrorState message={error} />}
-        {testResult && <InlineNotice tone={testResult.success ? 'success' : 'error'}>{testResult.message}</InlineNotice>}
+
         <div className="form-actions"><Button type="button" onClick={() => void testConnection()} busy={testing}><Wifi size={16} />Test connection</Button><Button type="submit" variant="primary" busy={saving}><Check size={16} />Save connection</Button></div>
       </form>
       <aside className="setup-aside">
