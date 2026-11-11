@@ -15,7 +15,7 @@ import { AddItemDialog } from '@/components/organisms/AddItemDialog'
 import { ItemEditorDialog } from '@/components/organisms/ItemEditorDialog'
 import { PageHeader } from '@/components/templates/PageHeader'
 
-const PAGE_SIZE = 25
+const PAGE_SIZES = [10, 25, 50, 100] as const
 interface ItemFilter { attribute: string; operator: 'eq'; value: AttributeValue }
 
 export function TableBrowserPage() {
@@ -30,6 +30,7 @@ export function TableBrowserPage() {
   const [metaLoading, setMetaLoading] = useState(false)
   const [metaError, setMetaError] = useState('')
   const [page, setPage] = useState<ItemPage | null>(null)
+  const [pageSize, setPageSize] = useState<number>(25)
   const [pageLoading, setPageLoading] = useState(false)
   const [itemsError, setItemsError] = useState('')
   const [tokens, setTokens] = useState<Array<string | undefined>>([undefined])
@@ -91,12 +92,12 @@ export function TableBrowserPage() {
     setPageLoading(true)
     setItemsError('')
     try {
-      const result = await api.listItems(connectionId, tableName, { limit: PAGE_SIZE, nextToken: tokens[pageIndex], filter: activeFilter })
+      const result = await api.listItems(connectionId, tableName, { limit: pageSize, nextToken: tokens[pageIndex], filter: activeFilter })
       setPage(result)
     } catch (reason) {
       setItemsError(reason instanceof Error ? reason.message : 'Could not load items.')
     } finally { setPageLoading(false) }
-  }, [activeFilter, connectionId, metadata, pageIndex, tableName, tokens])
+  }, [activeFilter, connectionId, metadata, pageIndex, pageSize, tableName, tokens])
 
   useEffect(() => { loadItems() }, [loadItems])
 
@@ -224,14 +225,14 @@ export function TableBrowserPage() {
               {activeFilter && <div className="active-filter"><span>Active: <strong>{activeFilter.attribute}</strong> equals <code>{JSON.stringify(activeFilter.value)}</code></span><button type="button" aria-label="Clear filter" className="text-button" onClick={clearFilter}>Clear</button></div>}
             </div>
             <section className="panel items-panel">
-              <div className="items-toolbar"><div><div className="items-title"><h2>Items</h2>{page && <StatusBadge>{page.count} returned</StatusBadge>}</div><p>{page ? `${page.scannedCount.toLocaleString()} items scanned · page ${pageIndex + 1}` : 'Browse and edit typed DynamoDB records.'}</p></div><span className="page-size"><span className="page-size-dot" />25 per page</span></div>
+              <div className="items-toolbar"><div><div className="items-title"><h2>Items</h2>{page && <StatusBadge>{page.count} returned</StatusBadge>}</div><p>{page ? `${page.scannedCount.toLocaleString()} items scanned · page ${pageIndex + 1}` : 'Browse and edit typed DynamoDB records.'}</p></div><label className="page-size" htmlFor="page-size"><span className="page-size-dot" aria-hidden="true" /><span>Items per page</span><select id="page-size" className="input page-size-input" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setTokens([undefined]); setPageIndex(0); setPage(null) }}>{PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}</select></label></div>
 
               {itemsError && <ErrorState message={itemsError} onRetry={() => loadItems()} />}
               {pageLoading && <LoadingState label="Loading items…" />}
               {!pageLoading && page?.items.length === 0 && <EmptyState title={emptyItemsTitle} description={emptyItemsDescription} action={emptyItemsAction} />}
               {!pageLoading && page && page.items.length > 0 && <>
-                <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={JSON.stringify(getItemKey(item, metadata) ?? item)}><td className="row-number">{index + 1 + pageIndex * PAGE_SIZE}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button type="button" className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button type="button" className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => setDeleteTarget(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
-                <div className="pagination"><span>Showing <strong>{page.items.length ? pageIndex * PAGE_SIZE + 1 : 0}–{pageIndex * PAGE_SIZE + page.items.length}</strong> of scanned records</span><div><Button size={ButtonSize.Small} onClick={goPrevious} disabled={pageIndex === 0 || pageLoading}><ArrowLeft size={14} />Previous</Button><span className="page-number">{pageIndex + 1}</span><Button size={ButtonSize.Small} onClick={goNext} disabled={!page.nextToken || pageLoading}>Next<ArrowRight size={14} /></Button></div></div>
+                <div className="items-table-wrap"><table className="items-table"><thead><tr><th className="row-number">#</th>{columns.map((column) => <th key={column}>{column}{column === metadata.partitionKey.name && <span className="column-key" title="Partition key">PK</span>}{column === metadata.sortKey?.name && <span className="column-key" title="Sort key">SK</span>}</th>)}<th className="actions-column">Actions</th></tr></thead><tbody>{page.items.map((item, index) => <tr key={JSON.stringify(getItemKey(item, metadata) ?? item)}><td className="row-number">{index + 1 + pageIndex * pageSize}</td>{columns.map((column) => <td key={column}>{item[column] ? <span className="attribute-cell"><span className="attribute-kind">{getAttributeKind(item[column])}</span><span className="attribute-preview" title={JSON.stringify(item[column])}>{getAttributePreview(item[column])}</span></span> : <span className="missing-value">—</span>}</td>)}<td><div className="row-actions"><button type="button" className="icon-button row-edit" aria-label={`Edit item ${index + 1}`} onClick={() => setSelectedItem(item)}><Pencil size={15} /></button><button type="button" className="icon-button danger-icon" aria-label={`Delete item ${index + 1}`} disabled={deleting} onClick={() => setDeleteTarget(item)}><Trash2 size={15} /></button></div></td></tr>)}</tbody></table></div>
+                <div className="pagination"><span>Showing <strong>{page.items.length ? pageIndex * pageSize + 1 : 0}–{pageIndex * pageSize + page.items.length}</strong> of scanned records</span><div><Button size={ButtonSize.Small} onClick={goPrevious} disabled={pageIndex === 0 || pageLoading}><ArrowLeft size={14} />Previous</Button><span className="page-number">{pageIndex + 1}</span><Button size={ButtonSize.Small} onClick={goNext} disabled={!page.nextToken || pageLoading}>Next<ArrowRight size={14} /></Button></div></div>
               </>}
             </section>
           </>}
