@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
   <title id="title">Dynager</title>
   <desc id="desc">An original database stack with a highlighted record.</desc>
-  <rect width="64" height="64" rx="14" fill="#172554"/>
-  <path d="M15 19c0-4 7.6-7 17-7s17 3 17 7-7.6 7-17 7-17-3-17-7Z" fill="#38bdf8"/>
-  <path d="M15 19v9c0 4 7.6 7 17 7 2.2 0 4.3-.2 6.2-.5" fill="none" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
-  <path d="M49 19v9c0 2.1-2.2 4-5.7 5.3" fill="none" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
-  <path d="M15 29v9c0 4 7.6 7 17 7 1.1 0 2.2 0 3.2-.1" fill="none" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
-  <path d="M15 39v7c0 4 7.6 7 17 7 2 0 3.8-.1 5.5-.4" fill="none" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
-  <path d="M49 40.5v5.5c0 4-7.6 7-17 7" fill="none" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
-  <path d="M44.5 34.5 54 44l-9.5 9.5" fill="none" stroke="#fbbf24" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="44.5" cy="34.5" r="3" fill="#fbbf24"/>
+  <rect width="64" height="64" rx="14" fill="#012a4a"/>
+  <path d="M15 19c0-4 7.6-7 17-7s17 3 17 7-7.6 7-17 7-17-3-17-7Z" fill="#2c7da0"/>
+  <path d="M15 19v9c0 4 7.6 7 17 7 2.2 0 4.3-.2 6.2-.5" fill="none" stroke="#a9d6e5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M49 19v9c0 2.1-2.2 4-5.7 5.3" fill="none" stroke="#a9d6e5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M15 29v9c0 4 7.6 7 17 7 1.1 0 2.2 0 3.2-.1" fill="none" stroke="#a9d6e5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M15 39v7c0 4 7.6 7 17 7 2 0 3.8-.1 5.5-.4" fill="none" stroke="#a9d6e5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M49 40.5v5.5c0 4-7.6 7-17 7" fill="none" stroke="#a9d6e5" stroke-width="3" stroke-linecap="round"/>
+  <path d="M44.5 34.5 54 44l-9.5 9.5" fill="none" stroke="#89c2d9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="44.5" cy="34.5" r="3" fill="#89c2d9"/>
 </svg>
