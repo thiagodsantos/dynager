@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Activity, Boxes, ChevronRight, Database, Menu, Moon, Plus, Sun, X } from 'lucide-react'
+import { Activity, Boxes, ChevronRight, Database, Github, Menu, Moon, Plus, Sun, X } from 'lucide-react'
 import { Theme } from '@/lib/theme'
 
 interface AppLayoutProps {
@@ -35,7 +35,7 @@ export function AppLayout({ theme, onThemeToggle }: AppLayoutProps) {
         <div className="topbar-actions"><span className="api-indicator"><span />API workspace</span><button type="button" className="icon-button theme-toggle" aria-label={`Switch to ${theme === Theme.Dark ? Theme.Light : Theme.Dark} theme`} onClick={onThemeToggle}>{theme === Theme.Dark ? <Sun size={18} /> : <Moon size={18} />}</button><span className="user-avatar" title="Local workspace">LW</span></div>
       </header>
       <main className="main-content"><Outlet /></main>
-      <footer className="page-footer"><span>dynager <span className="footer-dot">·</span> DynamoDB manager</span><span>Local-first, credential-safe by design</span></footer>
+      <footer className="page-footer"><span>Created by <a className="footer-author" href="https://thiagosantos.dev.br" target="_blank" rel="noreferrer">Thiago Santos</a></span><a className="footer-repository" href="https://github.com/thiagodsantos/dynager" target="_blank" rel="noreferrer" aria-label="View repository on GitHub"><Github size={18} aria-hidden="true" /></a></footer>
     </div>
   </div>
 }
