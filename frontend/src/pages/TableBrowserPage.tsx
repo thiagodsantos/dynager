@@ -196,7 +196,7 @@ export function TableBrowserPage() {
     : 'There are no records in this table yet.'
   const emptyItemsAction = activeFilter ? <Button onClick={clearFilter}>Clear filter</Button> : undefined
 
-  return <>
+  return <div className="table-browser-page">
     <div className="back-link-row"><Link className="back-link" to="/connections"><ArrowLeft size={15} />Connections</Link><span>/</span><span>{connectionLabel}</span></div>
     <PageHeader eyebrow="DynamoDB explorer" title={tableName ?? 'Tables'} description={connection ? `${connection.name} · ${connection.region}${connection.profile ? ` · profile ${connection.profile}` : ''}` : 'Browse tables and inspect their records.'} actions={<><Button onClick={() => { if (tableName) loadItems(); else navigate(pathToTables) }} aria-label="Refresh data"><RefreshCw size={15} />Refresh</Button>{tableName && metadata && <Button variant={ButtonVariant.Primary} onClick={() => setAddItemOpen(true)}><Plus size={15} />Add item</Button>}</>} />
     {tablesError && <ErrorState message={tablesError} onRetry={() => navigate(pathToTables)} />}
@@ -241,5 +241,5 @@ export function TableBrowserPage() {
     {deleteTarget && tableName && <ConfirmationDialog title="Delete item?" description={`Permanently delete this item from ${tableName}? This action cannot be undone.`} confirmLabel="Delete item" busy={deleting} onCancel={() => setDeleteTarget(null)} onConfirm={() => removeItem(deleteTarget)} />}
     {addItemOpen && metadata && <AddItemDialog metadata={metadata} busy={saving} onClose={() => setAddItemOpen(false)} onCreate={createItem} />}
     {selectedItem && metadata && <ItemEditorDialog item={selectedItem} metadata={metadata} busy={saving} onClose={() => setSelectedItem(null)} onSave={saveItem} />}
-  </>
+  </div>
 }

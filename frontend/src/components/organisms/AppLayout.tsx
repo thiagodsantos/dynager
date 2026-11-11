@@ -17,7 +17,7 @@ export function AppLayout({ theme, onThemeToggle }: AppLayoutProps) {
   if (inConnection) breadcrumbTitle = 'Table explorer'
   else if (location.pathname.includes('new')) breadcrumbTitle = 'New connection'
 
-  return <div className="app-frame">
+  return <div className={`app-frame ${inConnection ? 'app-frame-browser' : ''}`}>
     {mobileOpen && <button type="button" className="mobile-scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
     <aside className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`}>
       <div className="brand-row"><span className="brand-mark"><Database size={19} /></span><span className="brand-copy"><span className="brand-name">dynager</span><small className="brand-subtitle">DynamoDB manager</small></span><button type="button" className="icon-button sidebar-close" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
